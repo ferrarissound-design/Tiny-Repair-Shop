@@ -10,7 +10,7 @@ local Lighting = game:GetService("Lighting")
 local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
 
-local DATASTORE_NAME = "TinyRepairShopPlayerData_v2"
+local DATASTORE_NAME = "TinyRepairShopPlayerData_v1"
 local SAVE_KEY_PREFIX = "player_"
 local RARE_FIND_CHANCE = 0.08
 local RARE_FIND_BONUS = 25

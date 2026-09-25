@@ -334,6 +334,9 @@ fixButton.Activated:Connect(function()
 	if not current or current.submitted then
 		return
 	end
+	if workspace:GetServerTimeNow() < current.startTime then
+		return
+	end
 
 	current.submitted = true
 	fixButton.Active = false
