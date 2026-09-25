@@ -21,6 +21,8 @@ local stateChanged = remotes:WaitForChild("StateChanged") :: RemoteEvent
 local toastEvent = remotes:WaitForChild("Toast") :: RemoteEvent
 local skillCheckStarted = remotes:WaitForChild("SkillCheckStarted") :: RemoteEvent
 local skillCheckSubmit = remotes:WaitForChild("SkillCheckSubmit") :: RemoteEvent
+local jobOffersOpened = remotes:WaitForChild("JobOffersOpened") :: RemoteEvent
+local jobOfferChosen = remotes:WaitForChild("JobOfferChosen") :: RemoteEvent
 
 local localeCode = Localization.getLocaleCode(LocalizationService.RobloxLocaleId)
 
@@ -190,6 +192,124 @@ local function renderJob(state: any?)
 	end
 end
 
+-- Customer job offers. The server decides which jobs are valid; the client only
+-- renders the choices and sends the selected slot back.
+local offersFrame = Instance.new("Frame")
+offersFrame.Name = "JobOffers"
+offersFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+offersFrame.Size = UDim2.new(0.9, 0, 0, 360)
+offersFrame.Position = UDim2.fromScale(0.5, 0.5)
+offersFrame.BackgroundColor3 = Color3.fromRGB(34, 39, 37)
+offersFrame.BackgroundTransparency = 0.02
+offersFrame.Visible = false
+offersFrame.Parent = gui
+round(offersFrame, 20)
+addStroke(offersFrame, 0.72)
+
+local offersConstraint = Instance.new("UISizeConstraint")
+offersConstraint.MaxSize = Vector2.new(620, 380)
+offersConstraint.MinSize = Vector2.new(300, 330)
+offersConstraint.Parent = offersFrame
+
+local offersTitle = makeText(
+	offersFrame,
+	Localization.text("ChooseRepair", localeCode),
+	UDim2.new(1, -70, 0, 32),
+	UDim2.fromOffset(18, 14),
+	22,
+	true
+)
+
+local offersHint = makeText(
+	offersFrame,
+	Localization.text("ChooseRepairHint", localeCode),
+	UDim2.new(1, -36, 0, 32),
+	UDim2.fromOffset(18, 49),
+	14,
+	false
+)
+
+local closeOffers = Instance.new("TextButton")
+closeOffers.Name = "Close"
+closeOffers.Size = UDim2.fromOffset(42, 42)
+closeOffers.Position = UDim2.new(1, -54, 0, 12)
+closeOffers.BackgroundColor3 = Color3.fromRGB(73, 78, 75)
+closeOffers.Text = "×"
+closeOffers.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeOffers.Font = Enum.Font.GothamBold
+closeOffers.TextSize = 25
+closeOffers.Parent = offersFrame
+round(closeOffers, 12)
+
+local offerButtons: { TextButton } = {}
+for index = 1, 3 do
+	local button = Instance.new("TextButton")
+	button.Name = "Offer" .. tostring(index)
+	button.Size = UDim2.new(1, -36, 0, 72)
+	button.Position = UDim2.fromOffset(18, 88 + (index - 1) * 82)
+	button.BackgroundColor3 = Color3.fromRGB(63, 78, 70)
+	button.TextColor3 = Color3.fromRGB(248, 245, 235)
+	button.Font = Enum.Font.Gotham
+	button.TextSize = 15
+	button.TextWrapped = true
+	button.TextXAlignment = Enum.TextXAlignment.Left
+	button.AutoButtonColor = true
+	button.Visible = false
+	button.Parent = offersFrame
+	round(button, 14)
+	addStroke(button, 0.84)
+	table.insert(offerButtons, button)
+
+	button.Activated:Connect(function()
+		if not offersFrame.Visible or not button.Visible then
+			return
+		end
+		offersFrame.Visible = false
+		jobOfferChosen:FireServer(index)
+	end)
+end
+
+closeOffers.Activated:Connect(function()
+	offersFrame.Visible = false
+end)
+
+jobOffersOpened.OnClientEvent:Connect(function(payload)
+	if type(payload) ~= "table" then
+		return
+	end
+
+	for _, button in offerButtons do
+		button.Visible = false
+	end
+
+	local visibleCount = 0
+	for index, offer in payload do
+		if index > #offerButtons or type(offer) ~= "table" then
+			break
+		end
+
+		local job = RepairCatalog.getJob(offer.jobId)
+		if job then
+			local button = offerButtons[index]
+			local pay = if type(offer.baseReward) == "number" then math.floor(offer.baseReward) else 0
+			local rep = if type(offer.reputationReward) == "number" then math.floor(offer.reputationReward) else 0
+			button.Text = "  " .. Localization.pick(job.name, localeCode)
+				.. "\n  "
+				.. Localization.text("BasePay", localeCode)
+				.. ": $"
+				.. tostring(pay)
+				.. "+   •   +"
+				.. tostring(rep)
+				.. " "
+				.. Localization.text("RepShort", localeCode)
+			button.Visible = true
+			visibleCount += 1
+		end
+	end
+
+	offersFrame.Visible = visibleCount > 0
+end)
+
 -- Timing repair minigame. Server time is used on both client and server so the
 -- authoritative server can judge the exact same needle position.
 local skillFrame = Instance.new("Frame")
@@ -310,6 +430,7 @@ skillCheckStarted.OnClientEvent:Connect(function(data)
 	targetZone.Position = UDim2.fromScale(data.targetStart, 0)
 	targetZone.Size = UDim2.fromScale(data.targetEnd - data.targetStart, 1)
 	needle.Position = UDim2.fromScale(0, 0.5)
+	offersFrame.Visible = false
 	skillFrame.Visible = true
 	fixButton.Active = false
 

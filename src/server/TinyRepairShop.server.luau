@@ -31,6 +31,11 @@ type SkillCheckState = {
 	targetEnd: number,
 }
 
+type OfferState = {
+	jobId: string,
+	faultId: string,
+}
+
 type JobState = {
 	jobId: string,
 	faultId: string,
@@ -44,6 +49,7 @@ type JobState = {
 }
 
 local states: { [Player]: JobState } = {}
+local offers: { [Player]: { OfferState } } = {}
 local stats: { [Player]: { money: IntValue, reputation: IntValue, toolLevel: IntValue } } = {}
 
 local remotes = ReplicatedStorage:FindFirstChild("TinyRepairShopRemotes") :: Folder?
@@ -69,6 +75,8 @@ local stateChanged = ensureRemote("StateChanged")
 local toastEvent = ensureRemote("Toast")
 local skillCheckStarted = ensureRemote("SkillCheckStarted")
 local skillCheckSubmit = ensureRemote("SkillCheckSubmit")
+local jobOffersOpened = ensureRemote("JobOffersOpened")
+local jobOfferChosen = ensureRemote("JobOfferChosen")
 
 local runtime = workspace:FindFirstChild("TinyRepairShopRuntime") :: Folder?
 if runtime then
@@ -628,21 +636,27 @@ local function connectRepairPrompt(player: Player, state: JobState, primary: Bas
 	updatePrompt(player)
 end
 
-local function startJob(player: Player)
+local function startJob(player: Player, jobId: string, faultId: string)
 	if states[player] then
 		toastEvent:FireClient(player, "AlreadyWorking", {})
 		return
 	end
 
-	local reputationValue = getStatValue(player, "Reputation")
-	local reputation = if reputationValue then reputationValue.Value else 0
-	local unlockedJobs = RepairCatalog.getUnlockedJobs(reputation)
-	if #unlockedJobs == 0 then
+	local job = RepairCatalog.getJob(jobId)
+	if not job then
+		return
+	end
+	local fault = RepairCatalog.getFault(job, faultId)
+	if not fault then
 		return
 	end
 
-	local job = unlockedJobs[random:NextInteger(1, #unlockedJobs)]
-	local fault = job.faults[random:NextInteger(1, #job.faults)]
+	local reputationValue = getStatValue(player, "Reputation")
+	local reputation = if reputationValue then reputationValue.Value else 0
+	if reputation < job.minReputation then
+		return
+	end
+
 	local model, primary = buildRepairItem(job.id, player)
 	if not model or not primary then
 		return
@@ -660,10 +674,62 @@ local function startJob(player: Player)
 		pendingSkill = nil,
 	}
 
+	offers[player] = nil
 	states[player] = state
 	connectRepairPrompt(player, state, primary)
 	pushState(player)
 	toastEvent:FireClient(player, "JobAccepted", {})
+end
+
+local function shuffledJobs(jobs)
+	local result = {}
+	for _, job in jobs do
+		table.insert(result, job)
+	end
+
+	for index = #result, 2, -1 do
+		local swapIndex = random:NextInteger(1, index)
+		result[index], result[swapIndex] = result[swapIndex], result[index]
+	end
+
+	return result
+end
+
+local function presentOffers(player: Player)
+	if states[player] then
+		toastEvent:FireClient(player, "AlreadyWorking", {})
+		return
+	end
+
+	local reputationValue = getStatValue(player, "Reputation")
+	local reputation = if reputationValue then reputationValue.Value else 0
+	local unlockedJobs = RepairCatalog.getUnlockedJobs(reputation)
+	if #unlockedJobs == 0 then
+		return
+	end
+
+	local shuffled = shuffledJobs(unlockedJobs)
+	local count = math.min(3, #shuffled)
+	local playerOffers: { OfferState } = {}
+	local payload = {}
+
+	for index = 1, count do
+		local job = shuffled[index]
+		local fault = job.faults[random:NextInteger(1, #job.faults)]
+		local offer: OfferState = {
+			jobId = job.id,
+			faultId = fault.id,
+		}
+		table.insert(playerOffers, offer)
+		table.insert(payload, {
+			jobId = job.id,
+			baseReward = job.baseReward,
+			reputationReward = job.reputationReward,
+		})
+	end
+
+	offers[player] = playerOffers
+	jobOffersOpened:FireClient(player, payload)
 end
 
 local function loadPlayer(player: Player)
@@ -735,7 +801,29 @@ end
 buildWorkshop()
 
 customerPrompt.Triggered:Connect(function(player: Player)
-	startJob(player)
+	presentOffers(player)
+end)
+
+jobOfferChosen.OnServerEvent:Connect(function(player: Player, offerIndex: number)
+	if type(offerIndex) ~= "number" then
+		return
+	end
+	if states[player] then
+		return
+	end
+
+	local playerOffers = offers[player]
+	if not playerOffers then
+		return
+	end
+
+	local index = math.floor(offerIndex)
+	local offer = playerOffers[index]
+	if not offer then
+		return
+	end
+
+	startJob(player, offer.jobId, offer.faultId)
 end)
 
 toolUpgradePrompt.Triggered:Connect(function(player: Player)
@@ -803,6 +891,7 @@ Players.PlayerRemoving:Connect(function(player: Player)
 	savePlayer(player)
 	destroyPlayerItem(player)
 	states[player] = nil
+	offers[player] = nil
 	stats[player] = nil
 end)
 
