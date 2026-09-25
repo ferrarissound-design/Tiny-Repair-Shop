@@ -11,86 +11,48 @@ export type LocalizedText = {
 }
 
 local STRINGS: { [string]: LocalizedText } = {
-	Title = {
-		en = "Tiny Repair Shop",
-		ja = "小さな修理工房",
-	},
-	Money = {
-		en = "Cash",
-		ja = "お金",
-	},
-	Reputation = {
-		en = "Reputation",
-		ja = "評判",
-	},
-	NoJobTitle = {
-		en = "No repair in progress",
-		ja = "修理依頼はありません",
-	},
+	Title = { en = "Tiny Repair Shop", ja = "小さな修理工房" },
+	Money = { en = "Cash", ja = "お金" },
+	Reputation = { en = "Reputation", ja = "評判" },
+	Quality = { en = "Quality", ja = "仕上がり" },
+
+	NoJobTitle = { en = "No repair in progress", ja = "修理依頼はありません" },
 	NoJobBody = {
 		en = "Talk to the customer at the counter to take a job.",
 		ja = "カウンターのお客さんに話しかけて、修理を受けてください。",
 	},
-	HiddenFault = {
-		en = "Fault: ???",
-		ja = "故障原因：？？？",
-	},
+	HiddenFault = { en = "Fault: ???", ja = "故障原因：？？？" },
 	GoToWorkbench = {
 		en = "Bring the item to the workbench and inspect it.",
 		ja = "作業台で品物を点検してください。",
 	},
-	JobAccepted = {
-		en = "New repair accepted!",
-		ja = "新しい修理を受けました！",
-	},
-	FaultFound = {
-		en = "Fault found!",
-		ja = "故障原因を発見！",
-	},
-	StepComplete = {
-		en = "Nice work. Next step unlocked.",
-		ja = "いい感じ。次の作業に進めます。",
-	},
-	RepairComplete = {
-		en = "Repair complete!",
-		ja = "修理完了！",
-	},
+	JobAccepted = { en = "New repair accepted!", ja = "新しい修理を受けました！" },
+	FaultFound = { en = "Fault found!", ja = "故障原因を発見！" },
+	StepComplete = { en = "Nice work. Next step unlocked.", ja = "いい感じ。次の作業に進めます。" },
+	RepairComplete = { en = "Repair complete!", ja = "修理完了！" },
 	RareFind = {
 		en = "You found forgotten coins inside! Bonus added.",
 		ja = "中から忘れ物のコインを発見！ ボーナス獲得。",
 	},
-	AlreadyWorking = {
-		en = "Finish your current repair first.",
-		ja = "先に今の修理を終わらせてください。",
+	AlreadyWorking = { en = "Finish your current repair first.", ja = "先に今の修理を終わらせてください。" },
+	NotYourRepair = { en = "That repair belongs to another player.", ja = "これは他のプレイヤーの修理品です。" },
+	CustomerReady = { en = "A customer is waiting at the counter.", ja = "カウンターでお客さんが待っています。" },
+	Reward = { en = "Reward", ja = "報酬" },
+	CurrentStep = { en = "Current step", ja = "現在の作業" },
+	Symptom = { en = "Customer says", ja = "お客さんの話" },
+	Fault = { en = "Fault", ja = "故障原因" },
+	StepProgress = { en = "Step %d / %d", ja = "手順 %d / %d" },
+
+	SkillCheckTitle = { en = "Steady hands!", ja = "慎重に作業！" },
+	SkillCheckHint = {
+		en = "Stop the needle inside the green zone.",
+		ja = "針を緑のゾーンで止めてください。",
 	},
-	NotYourRepair = {
-		en = "That repair belongs to another player.",
-		ja = "これは他のプレイヤーの修理品です。",
-	},
-	CustomerReady = {
-		en = "A customer is waiting at the counter.",
-		ja = "カウンターでお客さんが待っています。",
-	},
-	Reward = {
-		en = "Reward",
-		ja = "報酬",
-	},
-	CurrentStep = {
-		en = "Current step",
-		ja = "現在の作業",
-	},
-	Symptom = {
-		en = "Customer says",
-		ja = "お客さんの話",
-	},
-	Fault = {
-		en = "Fault",
-		ja = "故障原因",
-	},
-	StepProgress = {
-		en = "Step %d / %d",
-		ja = "手順 %d / %d",
-	},
+	SkillCheckButton = { en = "FIX!", ja = "ここ！" },
+	SkillCheckSuccess = { en = "Perfect touch!", ja = "うまくいった！" },
+	SkillCheckFail = { en = "Missed it. Try that step again.", ja = "少しズレた。もう一度！" },
+	SkillCheckExpired = { en = "Too slow. Try that step again.", ja = "時間切れ。もう一度！" },
+	QualityBonus = { en = "Quality bonus", ja = "仕上がりボーナス" },
 }
 
 function Localization.getLocaleCode(robloxLocaleId: string?): string
