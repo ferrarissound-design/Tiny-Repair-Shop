@@ -1,0 +1,23 @@
+{
+  "name": "Tiny Repair Shop",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "TinyRepairShopShared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "TinyRepairShop": {
+        "$path": "src/server/TinyRepairShop.server.luau"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "TinyRepairShop": {
+          "$path": "src/client/TinyRepairShop.client.luau"
+        }
+      }
+    }
+  }
+}
