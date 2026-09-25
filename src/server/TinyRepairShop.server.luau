@@ -136,9 +136,9 @@ local function buildWorkshop()
 	Lighting.OutdoorAmbient = Color3.fromRGB(95, 100, 110)
 
 	newPart("Floor", Vector3.new(36, 1, 28), CFrame.new(0, 0, 0), Color3.fromRGB(116, 91, 67), Enum.Material.WoodPlanks)
-	newPart("BackWall", Vector3.new(36, 12, 1), CFrame.new(0, 6.5, 13.5), Color3.fromRGB(222, 214, 194), Enum.Material.Plaster)
-	newPart("LeftWall", Vector3.new(1, 12, 28), CFrame.new(-17.5, 6.5, 0), Color3.fromRGB(222, 214, 194), Enum.Material.Plaster)
-	newPart("RightWall", Vector3.new(1, 12, 28), CFrame.new(17.5, 6.5, 0), Color3.fromRGB(222, 214, 194), Enum.Material.Plaster)
+	newPart("BackWall", Vector3.new(36, 12, 1), CFrame.new(0, 6.5, 13.5), Color3.fromRGB(222, 214, 194), Enum.Material.SmoothPlastic)
+	newPart("LeftWall", Vector3.new(1, 12, 28), CFrame.new(-17.5, 6.5, 0), Color3.fromRGB(222, 214, 194), Enum.Material.SmoothPlastic)
+	newPart("RightWall", Vector3.new(1, 12, 28), CFrame.new(17.5, 6.5, 0), Color3.fromRGB(222, 214, 194), Enum.Material.SmoothPlastic)
 	newPart("FrontHeader", Vector3.new(36, 2, 1), CFrame.new(0, 11.5, -13.5), Color3.fromRGB(70, 62, 54), Enum.Material.Wood)
 	newPart("Sidewalk", Vector3.new(44, 1, 10), CFrame.new(0, -0.05, -19), Color3.fromRGB(145, 145, 145), Enum.Material.Concrete)
 
@@ -357,9 +357,16 @@ local function buildRepairItem(jobId: string, player: Player): (Model?, BasePart
 	end
 
 	model.PrimaryPart = primary
-	local slotOffset = ((player.UserId % 3) - 1) * 2.6
+	-- Four stable workbench positions reduce overlap in small multiplayer sessions.
+	local slot = player.UserId % 4
+	local xOffset = if slot % 2 == 0 then -3 else 3
+	local zOffset = if slot < 2 then -1.15 else 1.15
 	local topY = workbenchTop.Position.Y + workbenchTop.Size.Y * 0.5 + 1.2
-	model:PivotTo(CFrame.new(workbenchTop.Position.X + slotOffset, topY, workbenchTop.Position.Z))
+	model:PivotTo(CFrame.new(
+		workbenchTop.Position.X + xOffset,
+		topY,
+		workbenchTop.Position.Z + zOffset
+	))
 	return model, primary
 end
 
