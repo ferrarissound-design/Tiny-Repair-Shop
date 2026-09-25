@@ -5,7 +5,7 @@ A cozy Roblox repair-shop game built in **Luau** and managed with **Rojo**.
 ## Current playable loop
 
 1. Walk to the customer at the front counter.
-2. Accept a repair request.
+2. Open the customer's repair offers and choose which job to take.
 3. Go to the workbench.
 4. Inspect the broken item to reveal its hidden fault.
 5. Perform repair actions.
@@ -31,6 +31,7 @@ Each item has multiple hidden fault paths, so the same device can require a diff
 - Runtime code is **Luau**.
 - Rojo-managed source tree.
 - Touch, controller, and keyboard friendly.
+- Server-validated customer offer selection with up to three unlocked jobs at once.
 - Repair prompts use Roblox \`ProximityPrompt\`.
 - Timing minigame uses a large touch-friendly button.
 - Server-authoritative repair progress, minigame judging, and rewards.

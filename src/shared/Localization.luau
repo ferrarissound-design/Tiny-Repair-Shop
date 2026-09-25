@@ -57,6 +57,11 @@ local STRINGS: { [string]: LocalizedText } = {
 	UpgradePurchased = { en = "Tools upgraded!", ja = "工具をアップグレード！" },
 	UpgradeNeedCash = { en = "Not enough cash.", ja = "お金が足りません。" },
 	UpgradeMax = { en = "Your tools are already maxed out.", ja = "工具は最大レベルです。" },
+	ChooseRepair = { en = "Choose a repair", ja = "修理依頼を選ぶ" },
+	ChooseRepairHint = { en = "Pick the job you want to take.", ja = "受けたい修理を選んでください。" },
+	BasePay = { en = "Pay", ja = "報酬" },
+	RepShort = { en = "Rep", ja = "評判" },
+	Close = { en = "Close", ja = "閉じる" },
 }
 
 function Localization.getLocaleCode(robloxLocaleId: string?): string
