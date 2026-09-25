@@ -15,6 +15,7 @@ local STRINGS: { [string]: LocalizedText } = {
 	Money = { en = "Cash", ja = "お金" },
 	Reputation = { en = "Reputation", ja = "評判" },
 	Quality = { en = "Quality", ja = "仕上がり" },
+	ToolLevel = { en = "Tools Lv.", ja = "工具 Lv." },
 
 	NoJobTitle = { en = "No repair in progress", ja = "修理依頼はありません" },
 	NoJobBody = {
@@ -53,6 +54,9 @@ local STRINGS: { [string]: LocalizedText } = {
 	SkillCheckFail = { en = "Missed it. Try that step again.", ja = "少しズレた。もう一度！" },
 	SkillCheckExpired = { en = "Too slow. Try that step again.", ja = "時間切れ。もう一度！" },
 	QualityBonus = { en = "Quality bonus", ja = "仕上がりボーナス" },
+	UpgradePurchased = { en = "Tools upgraded!", ja = "工具をアップグレード！" },
+	UpgradeNeedCash = { en = "Not enough cash.", ja = "お金が足りません。" },
+	UpgradeMax = { en = "Your tools are already maxed out.", ja = "工具は最大レベルです。" },
 }
 
 function Localization.getLocaleCode(robloxLocaleId: string?): string

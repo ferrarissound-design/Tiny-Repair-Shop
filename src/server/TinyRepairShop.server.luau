@@ -17,6 +17,8 @@ local RARE_FIND_BONUS = 25
 local SKILL_TIMEOUT_SECONDS = 9
 local PERFECT_REPAIR_BONUS = 20
 local GOOD_REPAIR_BONUS = 10
+local TOOL_UPGRADE_COSTS = { 150, 400, 900 }
+local TOOL_SKILL_WIDTH_BONUS = 0.025
 
 local playerStore = DataStoreService:GetDataStore(DATASTORE_NAME)
 local random = Random.new()
@@ -42,7 +44,7 @@ type JobState = {
 }
 
 local states: { [Player]: JobState } = {}
-local stats: { [Player]: { money: IntValue, reputation: IntValue } } = {}
+local stats: { [Player]: { money: IntValue, reputation: IntValue, toolLevel: IntValue } } = {}
 
 local remotes = ReplicatedStorage:FindFirstChild("TinyRepairShopRemotes") :: Folder?
 if not remotes then
@@ -117,6 +119,7 @@ end
 
 local workbenchTop: Part
 local customerPrompt: ProximityPrompt
+local toolUpgradePrompt: ProximityPrompt
 
 local function buildWorkshop()
 	Lighting.ClockTime = 17.7
@@ -148,6 +151,32 @@ local function buildWorkshop()
 	end
 	newPart("ShelfLeft", Vector3.new(0.4, 6.2, 2), CFrame.new(-15.8, 3.8, 8), Color3.fromRGB(74, 58, 44), Enum.Material.Wood)
 	newPart("ShelfRight", Vector3.new(0.4, 6.2, 2), CFrame.new(-8.2, 3.8, 8), Color3.fromRGB(74, 58, 44), Enum.Material.Wood)
+
+	local toolCabinet = newPart(
+		"ToolCabinet",
+		Vector3.new(5.5, 5.5, 2.2),
+		CFrame.new(-12.5, 3.25, -7.5),
+		Color3.fromRGB(65, 86, 78),
+		Enum.Material.Metal
+	)
+	local toolCabinetLabel = newPart(
+		"ToolCabinetLabel",
+		Vector3.new(4.5, 1.15, 0.2),
+		CFrame.new(-12.5, 5.2, -8.65),
+		Color3.fromRGB(44, 56, 51),
+		Enum.Material.Metal
+	)
+	addSurfaceText(toolCabinetLabel, "TOOL UPGRADES", Enum.NormalId.Front)
+
+	toolUpgradePrompt = Instance.new("ProximityPrompt")
+	toolUpgradePrompt.Name = "UpgradeTools"
+	toolUpgradePrompt.ActionText = "Upgrade tools"
+	toolUpgradePrompt.ObjectText = "Tool Cabinet"
+	toolUpgradePrompt.HoldDuration = 0.3
+	toolUpgradePrompt.MaxActivationDistance = 9
+	toolUpgradePrompt.RequiresLineOfSight = false
+	toolUpgradePrompt.KeyboardKeyCode = Enum.KeyCode.E
+	toolUpgradePrompt.Parent = toolCabinet
 
 	for i = 1, 5 do
 		local tool = newPart(
@@ -514,7 +543,10 @@ local function beginSkillCheck(player: Player, state: JobState, stepDefinition)
 		return
 	end
 
-	local width = math.clamp(stepDefinition.skillWidth or 0.24, 0.12, 0.42)
+	local toolLevelValue = getStatValue(player, "ToolLevel")
+	local toolLevel = if toolLevelValue then toolLevelValue.Value else 0
+	local widthBonus = toolLevel * TOOL_SKILL_WIDTH_BONUS
+	local width = math.clamp((stepDefinition.skillWidth or 0.24) + widthBonus, 0.12, 0.48)
 	local half = width * 0.5
 	local center = random:NextNumber(0.22 + half, 0.78 - half)
 	local startTime = workspace:GetServerTimeNow() + 0.35
@@ -649,7 +681,12 @@ local function loadPlayer(player: Player)
 	reputation.Value = 0
 	reputation.Parent = leaderstats
 
-	stats[player] = { money = money, reputation = reputation }
+	local toolLevel = Instance.new("IntValue")
+	toolLevel.Name = "ToolLevel"
+	toolLevel.Value = 0
+	toolLevel.Parent = leaderstats
+
+	stats[player] = { money = money, reputation = reputation, toolLevel = toolLevel }
 
 	local success, data = pcall(function()
 		return playerStore:GetAsync(SAVE_KEY_PREFIX .. tostring(player.UserId))
@@ -658,11 +695,15 @@ local function loadPlayer(player: Player)
 	if success and type(data) == "table" then
 		local savedMoney = data.money
 		local savedReputation = data.reputation
+		local savedToolLevel = data.toolLevel
 		if type(savedMoney) == "number" then
 			money.Value = math.max(0, math.floor(savedMoney))
 		end
 		if type(savedReputation) == "number" then
 			reputation.Value = math.max(0, math.floor(savedReputation))
+		end
+		if type(savedToolLevel) == "number" then
+			toolLevel.Value = math.clamp(math.floor(savedToolLevel), 0, #TOOL_UPGRADE_COSTS)
 		end
 	end
 
@@ -683,6 +724,7 @@ local function savePlayer(player: Player)
 	local payload = {
 		money = playerStats.money.Value,
 		reputation = playerStats.reputation.Value,
+		toolLevel = playerStats.toolLevel.Value,
 	}
 
 	pcall(function()
@@ -694,6 +736,32 @@ buildWorkshop()
 
 customerPrompt.Triggered:Connect(function(player: Player)
 	startJob(player)
+end)
+
+toolUpgradePrompt.Triggered:Connect(function(player: Player)
+	local cash = getStatValue(player, "Cash")
+	local toolLevel = getStatValue(player, "ToolLevel")
+	if not cash or not toolLevel then
+		return
+	end
+
+	if toolLevel.Value >= #TOOL_UPGRADE_COSTS then
+		toastEvent:FireClient(player, "UpgradeMax", {})
+		return
+	end
+
+	local cost = TOOL_UPGRADE_COSTS[toolLevel.Value + 1]
+	if cash.Value < cost then
+		toastEvent:FireClient(player, "UpgradeNeedCash", { cost = cost })
+		return
+	end
+
+	cash.Value -= cost
+	toolLevel.Value += 1
+	toastEvent:FireClient(player, "UpgradePurchased", {
+		level = toolLevel.Value,
+		cost = cost,
+	})
 end)
 
 skillCheckSubmit.OnServerEvent:Connect(function(player: Player)

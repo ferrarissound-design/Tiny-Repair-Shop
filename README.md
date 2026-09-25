@@ -14,6 +14,8 @@ A cozy Roblox repair-shop game built in **Luau** and managed with **Rojo**.
 8. Test the repaired item.
 9. Earn cash, reputation, rare-find bonuses, and a quality bonus.
 10. Reputation unlocks more complicated devices.
+11. Spend cash at the Tool Cabinet to permanently upgrade your tools.
+12. Better tools widen timing windows, making precise repairs more forgiving.
 
 Current repair families:
 
@@ -73,6 +75,16 @@ src/
 - Reputation 9: Game Controller
 
 Perfect repairs receive the highest quality bonus. One mistake still gets a smaller bonus; additional mistakes simply reduce quality.
+
+### Tool upgrades
+
+The Tool Cabinet provides a persistent cash sink:
+
+- Level 1: $150
+- Level 2: $400
+- Level 3: $900
+
+Each level slightly widens skill-check success zones. This makes money useful beyond being a scoreboard number and gives the workshop a light long-term progression loop.
 
 ## Good next steps
 

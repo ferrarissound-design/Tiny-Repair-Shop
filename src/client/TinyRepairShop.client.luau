@@ -67,7 +67,7 @@ end
 
 local statsFrame = Instance.new("Frame")
 statsFrame.Name = "Stats"
-statsFrame.Size = UDim2.fromOffset(292, 72)
+statsFrame.Size = UDim2.fromOffset(292, 96)
 statsFrame.Position = UDim2.fromOffset(16, 16)
 statsFrame.BackgroundColor3 = Color3.fromRGB(37, 43, 40)
 statsFrame.BackgroundTransparency = 0.08
@@ -79,6 +79,7 @@ makeText(statsFrame, "🔧 " .. Localization.text("Title", localeCode), UDim2.ne
 
 local moneyLabel = makeText(statsFrame, Localization.text("Money", localeCode) .. ": $0", UDim2.new(0.55, -8, 0, 24), UDim2.fromOffset(12, 39), 15, true)
 local reputationLabel = makeText(statsFrame, Localization.text("Reputation", localeCode) .. ": 0", UDim2.new(0.45, -8, 0, 24), UDim2.new(0.55, 0, 0, 39), 15, true)
+local toolLevelLabel = makeText(statsFrame, Localization.text("ToolLevel", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 65), 14, true)
 
 local jobFrame = Instance.new("Frame")
 jobFrame.Name = "JobCard"
@@ -135,6 +136,10 @@ local function showToast(key: string, data: any?)
 		end
 	elseif key == "RareFind" and data and type(data.bonus) == "number" then
 		message ..= "  +" .. tostring(math.floor(data.bonus))
+	elseif key == "UpgradePurchased" and data and type(data.level) == "number" then
+		message ..= "  Lv." .. tostring(math.floor(data.level))
+	elseif key == "UpgradeNeedCash" and data and type(data.cost) == "number" then
+		message ..= "  $" .. tostring(math.floor(data.cost))
 	end
 
 	toastText.Text = message
@@ -306,9 +311,16 @@ skillCheckStarted.OnClientEvent:Connect(function(data)
 	targetZone.Size = UDim2.fromScale(data.targetEnd - data.targetStart, 1)
 	needle.Position = UDim2.fromScale(0, 0.5)
 	skillFrame.Visible = true
-	fixButton.Active = true
+	fixButton.Active = false
 
 	local thisSkill = activeSkill
+	local activationDelay = math.max(0, data.startTime - workspace:GetServerTimeNow())
+	task.delay(activationDelay, function()
+		if activeSkill == thisSkill then
+			fixButton.Active = true
+		end
+	end)
+
 	task.delay(9.2, function()
 		if activeSkill == thisSkill then
 			activeSkill = nil
@@ -339,14 +351,17 @@ local function bindStats()
 	local leaderstats = player:WaitForChild("leaderstats")
 	local cash = leaderstats:WaitForChild("Cash") :: IntValue
 	local reputation = leaderstats:WaitForChild("Reputation") :: IntValue
+	local toolLevel = leaderstats:WaitForChild("ToolLevel") :: IntValue
 
 	local function refresh()
 		moneyLabel.Text = Localization.text("Money", localeCode) .. ": $" .. tostring(cash.Value)
 		reputationLabel.Text = Localization.text("Reputation", localeCode) .. ": " .. tostring(reputation.Value)
+		toolLevelLabel.Text = Localization.text("ToolLevel", localeCode) .. ": " .. tostring(toolLevel.Value)
 	end
 
 	cash:GetPropertyChangedSignal("Value"):Connect(refresh)
 	reputation:GetPropertyChangedSignal("Value"):Connect(refresh)
+	toolLevel:GetPropertyChangedSignal("Value"):Connect(refresh)
 	refresh()
 end
 
