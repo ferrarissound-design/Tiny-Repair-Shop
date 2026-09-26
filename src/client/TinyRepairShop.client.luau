@@ -217,7 +217,7 @@ end
 local offersFrame = Instance.new("Frame")
 offersFrame.Name = "JobOffers"
 offersFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-offersFrame.Size = UDim2.new(0.9, 0, 0, 430)
+offersFrame.Size = UDim2.new(0.9, 0, 0, 360)
 offersFrame.Position = UDim2.fromScale(0.5, 0.5)
 offersFrame.BackgroundColor3 = Color3.fromRGB(34, 39, 37)
 offersFrame.BackgroundTransparency = 0.02
@@ -227,8 +227,8 @@ round(offersFrame, 20)
 addStroke(offersFrame, 0.72)
 
 local offersConstraint = Instance.new("UISizeConstraint")
-offersConstraint.MaxSize = Vector2.new(620, 450)
-offersConstraint.MinSize = Vector2.new(300, 410)
+offersConstraint.MaxSize = Vector2.new(620, 380)
+offersConstraint.MinSize = Vector2.new(300, 340)
 offersConstraint.Parent = offersFrame
 
 local offersTitle = makeText(
@@ -265,8 +265,8 @@ local offerButtons: { TextButton } = {}
 for index = 1, 3 do
 	local button = Instance.new("TextButton")
 	button.Name = "Offer" .. tostring(index)
-	button.Size = UDim2.new(1, -36, 0, 92)
-	button.Position = UDim2.fromOffset(18, 88 + (index - 1) * 102)
+	button.Size = UDim2.new(1, -36, 0, 78)
+	button.Position = UDim2.fromOffset(18, 84 + (index - 1) * 86)
 	button.BackgroundColor3 = Color3.fromRGB(63, 78, 70)
 	button.TextColor3 = Color3.fromRGB(248, 245, 235)
 	button.Font = Enum.Font.Gotham
