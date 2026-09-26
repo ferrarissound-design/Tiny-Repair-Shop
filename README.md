@@ -30,7 +30,7 @@ Each item has multiple hidden fault paths, so the same device can require a diff
 
 Customer offers now also have personalities and repair modifiers. A normal fan repair can arrive as a rush job, a precious keepsake, or a precision order. Special orders change timing difficulty and payout instead of being cosmetic labels.
 
-At Reputation 5+, an offer board has an 8% chance to contain one **Odd Job**. Odd Jobs are rare story-flavored repairs with higher payouts, slightly tougher timing, a subtle visual glow, and their own persistent completion counter. Closing and reopening the offer board does not reroll the same set of jobs.
+At Reputation 5+, a live-server offer board has an 8% chance to contain one **Odd Job**. Roblox Studio uses 35% to make testing practical. Odd Jobs are rare story-flavored repairs with higher payouts, slightly tougher timing, a subtle visual glow, and their own persistent completion counter. Closing and reopening the offer board does not reroll the same set of jobs.
 
 ## Roblox-first design
 
