@@ -17,6 +17,7 @@ local STRINGS: { [string]: LocalizedText } = {
 	Quality = { en = "Quality", ja = "仕上がり" },
 	ToolLevel = { en = "Tools Lv.", ja = "工具 Lv." },
 	Streak = { en = "Perfect Streak", ja = "完璧連続" },
+	OddJobs = { en = "Odd Jobs", ja = "怪しい依頼" },
 
 	NoJobTitle = { en = "No repair in progress", ja = "修理依頼はありません" },
 	NoJobBody = {
@@ -32,6 +33,9 @@ local STRINGS: { [string]: LocalizedText } = {
 	FaultFound = { en = "Fault found!", ja = "故障原因を発見！" },
 	StepComplete = { en = "Nice work. Next step unlocked.", ja = "いい感じ。次の作業に進めます。" },
 	RepairComplete = { en = "Repair complete!", ja = "修理完了！" },
+	OddityArrived = { en = "Something strange is in today's repair pile...", ja = "今日の依頼に、妙なものが紛れています…" },
+	OddityAccepted = { en = "Odd job accepted. Try not to ask too many questions.", ja = "怪しい依頼を受けました。深く考えない方がよさそうです。" },
+	OddityComplete = { en = "Odd job complete. The shop log has been updated.", ja = "怪しい依頼を修理完了。工房の記録に追加しました。" },
 	RareFind = {
 		en = "You found forgotten coins inside! Bonus added.",
 		ja = "中から忘れ物のコインを発見！ ボーナス獲得。",
@@ -63,6 +67,7 @@ local STRINGS: { [string]: LocalizedText } = {
 	BasePay = { en = "Pay", ja = "報酬" },
 	QuotedPay = { en = "Est. pay", ja = "報酬目安" },
 	SpecialOrder = { en = "Special order", ja = "特別依頼" },
+	OddJobTag = { en = "ODD JOB", ja = "怪しい依頼" },
 	PerfectChain = { en = "Perfect streak", ja = "完璧連続" },
 	RepShort = { en = "Rep", ja = "評判" },
 	Close = { en = "Close", ja = "閉じる" },
