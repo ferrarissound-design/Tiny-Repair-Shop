@@ -70,7 +70,7 @@ end
 
 local statsFrame = Instance.new("Frame")
 statsFrame.Name = "Stats"
-statsFrame.Size = UDim2.fromOffset(292, 120)
+statsFrame.Size = UDim2.fromOffset(292, 144)
 statsFrame.Position = UDim2.fromOffset(16, 16)
 statsFrame.BackgroundColor3 = Color3.fromRGB(37, 43, 40)
 statsFrame.BackgroundTransparency = 0.08
@@ -84,6 +84,7 @@ local moneyLabel = makeText(statsFrame, Localization.text("Money", localeCode) .
 local reputationLabel = makeText(statsFrame, Localization.text("Reputation", localeCode) .. ": 0", UDim2.new(0.45, -8, 0, 24), UDim2.new(0.55, 0, 0, 39), 15, true)
 local toolLevelLabel = makeText(statsFrame, Localization.text("ToolLevel", localeCode) .. ": 0", UDim2.new(0.55, -8, 0, 22), UDim2.fromOffset(12, 65), 14, true)
 local streakLabel = makeText(statsFrame, "🔥 " .. Localization.text("Streak", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 89), 14, true)
+local oddJobsLabel = makeText(statsFrame, "◈ " .. Localization.text("OddJobs", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 113), 14, true)
 
 local jobFrame = Instance.new("Frame")
 jobFrame.Name = "JobCard"
@@ -134,7 +135,7 @@ local function showToast(key: string, data: any?)
 	local sequence = toastSequence
 	local message = Localization.text(key, localeCode)
 
-	if key == "RepairComplete" and data and type(data.reward) == "number" then
+	if (key == "RepairComplete" or key == "OddityComplete") and data and type(data.reward) == "number" then
 		message ..= "  +" .. tostring(math.floor(data.reward))
 		if type(data.quality) == "number" then
 			message ..= "  •  " .. Localization.text("Quality", localeCode) .. " " .. tostring(math.floor(data.quality)) .. "%"
@@ -142,7 +143,7 @@ local function showToast(key: string, data: any?)
 		if type(data.streak) == "number" and data.streak > 0 then
 			message ..= "  •  🔥 x" .. tostring(math.floor(data.streak))
 		end
-	elseif key == "JobAccepted" and data then
+	elseif (key == "JobAccepted" or key == "OddityAccepted") and data then
 		local customer = if type(data.customerId) == "string" then ShopFlavor.getCustomer(data.customerId) else nil
 		local modifier = if type(data.modifierId) == "string" then ShopFlavor.getModifier(data.modifierId) else nil
 		if customer and modifier then
@@ -183,12 +184,17 @@ local function renderJob(state: any?)
 		return
 	end
 
-	jobTitle.Text = "🔧 " .. Localization.pick(job.name, localeCode)
+	local titlePrefix = if job.rareOnly then "◈ " else "🔧 "
+	jobTitle.Text = titlePrefix .. Localization.pick(job.name, localeCode)
 	symptomLabel.Text = Localization.text("Symptom", localeCode) .. ": " .. Localization.pick(job.symptom, localeCode)
 	local customer = if type(state.customerId) == "string" then ShopFlavor.getCustomer(state.customerId) else nil
 	local modifier = if type(state.modifierId) == "string" then ShopFlavor.getModifier(state.modifierId) else nil
 	if customer and modifier then
-		flavorLabel.Text = "👤 " .. Localization.pick(customer.name, localeCode) .. "  •  " .. Localization.pick(modifier.label, localeCode)
+		local orderLabel = Localization.pick(modifier.label, localeCode)
+		if job.rareOnly then
+			orderLabel = "◈ " .. Localization.text("OddJobTag", localeCode)
+		end
+		flavorLabel.Text = "👤 " .. Localization.pick(customer.name, localeCode) .. "  •  " .. orderLabel
 	else
 		flavorLabel.Text = ""
 	end
@@ -300,6 +306,7 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 
 	for _, button in offerButtons do
 		button.Visible = false
+		button.BackgroundColor3 = Color3.fromRGB(63, 78, 70)
 	end
 
 	local visibleCount = 0
@@ -316,7 +323,13 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 			local customer = if type(offer.customerId) == "string" then ShopFlavor.getCustomer(offer.customerId) else nil
 			local modifier = if type(offer.modifierId) == "string" then ShopFlavor.getModifier(offer.modifierId) else nil
 			local customerName = if customer then Localization.pick(customer.name, localeCode) else "?"
-			local modifierName = if modifier then Localization.pick(modifier.label, localeCode) else Localization.text("SpecialOrder", localeCode)
+			local isOddity = offer.isOddity == true or job.rareOnly == true
+			local modifierName = if isOddity
+				then "◈ " .. Localization.text("OddJobTag", localeCode)
+				else if modifier then Localization.pick(modifier.label, localeCode) else Localization.text("SpecialOrder", localeCode)
+			if isOddity then
+				button.BackgroundColor3 = Color3.fromRGB(82, 61, 90)
+			end
 			button.Text = "  👤 " .. customerName .. "  •  " .. modifierName
 				.. "\n  🔧 "
 				.. Localization.pick(job.name, localeCode)
@@ -503,18 +516,21 @@ local function bindStats()
 	local reputation = leaderstats:WaitForChild("Reputation") :: IntValue
 	local toolLevel = leaderstats:WaitForChild("ToolLevel") :: IntValue
 	local streak = leaderstats:WaitForChild("Streak") :: IntValue
+	local oddJobs = leaderstats:WaitForChild("OddJobs") :: IntValue
 
 	local function refresh()
 		moneyLabel.Text = Localization.text("Money", localeCode) .. ": $" .. tostring(cash.Value)
 		reputationLabel.Text = Localization.text("Reputation", localeCode) .. ": " .. tostring(reputation.Value)
 		toolLevelLabel.Text = Localization.text("ToolLevel", localeCode) .. ": " .. tostring(toolLevel.Value)
 		streakLabel.Text = "🔥 " .. Localization.text("Streak", localeCode) .. ": " .. tostring(streak.Value)
+		oddJobsLabel.Text = "◈ " .. Localization.text("OddJobs", localeCode) .. ": " .. tostring(oddJobs.Value)
 	end
 
 	cash:GetPropertyChangedSignal("Value"):Connect(refresh)
 	reputation:GetPropertyChangedSignal("Value"):Connect(refresh)
 	toolLevel:GetPropertyChangedSignal("Value"):Connect(refresh)
 	streak:GetPropertyChangedSignal("Value"):Connect(refresh)
+	oddJobs:GetPropertyChangedSignal("Value"):Connect(refresh)
 	refresh()
 end
 
