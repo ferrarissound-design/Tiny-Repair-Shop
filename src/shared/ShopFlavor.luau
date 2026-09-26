@@ -101,6 +101,16 @@ ShopFlavor.Modifiers = {
 		perfectBonus = 35,
 		weight = 12,
 	},
+	{
+		id = "oddity",
+		label = { en = "Odd Job", ja = "怪しい依頼" },
+		note = { en = "Nobody agrees on what happened. The shop only agrees the payout is good.", ja = "何が起きたのか誰も説明できない。ただし報酬だけは妙にいい。" },
+		rewardMultiplier = 1.35,
+		skillWidthMultiplier = 0.90,
+		skillSpeedMultiplier = 1.08,
+		perfectBonus = 35,
+		weight = 0,
+	},
 } :: { JobModifier }
 
 local function findById(list: { any }, id: string): any?
