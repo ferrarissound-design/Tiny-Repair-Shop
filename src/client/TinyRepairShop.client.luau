@@ -324,9 +324,12 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 			local modifier = if type(offer.modifierId) == "string" then ShopFlavor.getModifier(offer.modifierId) else nil
 			local customerName = if customer then Localization.pick(customer.name, localeCode) else "?"
 			local isOddity = offer.isOddity == true or job.rareOnly == true
-			local modifierName = if isOddity
-				then "◈ " .. Localization.text("OddJobTag", localeCode)
-				else if modifier then Localization.pick(modifier.label, localeCode) else Localization.text("SpecialOrder", localeCode)
+			local modifierName = Localization.text("SpecialOrder", localeCode)
+			if isOddity then
+				modifierName = "◈ " .. Localization.text("OddJobTag", localeCode)
+			elseif modifier then
+				modifierName = Localization.pick(modifier.label, localeCode)
+			end
 			if isOddity then
 				button.BackgroundColor3 = Color3.fromRGB(82, 61, 90)
 			end
