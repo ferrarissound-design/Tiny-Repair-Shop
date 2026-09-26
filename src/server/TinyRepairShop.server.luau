@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreService = game:GetService("DataStoreService")
 local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
@@ -22,7 +23,7 @@ local TOOL_UPGRADE_COSTS = { 150, 400, 900 }
 local TOOL_SKILL_WIDTH_BONUS = 0.025
 local STREAK_BONUS_PER_LEVEL = 5
 local STREAK_BONUS_CAP = 30
-local ODD_JOB_OFFER_CHANCE = 0.08
+local ODD_JOB_OFFER_CHANCE = if RunService:IsStudio() then 0.35 else 0.08
 
 local playerStore = DataStoreService:GetDataStore(DATASTORE_NAME)
 local random = Random.new()
