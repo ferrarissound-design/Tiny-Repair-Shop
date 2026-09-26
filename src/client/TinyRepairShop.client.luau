@@ -15,6 +15,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
 local Localization = require(Shared:WaitForChild("Localization"))
+local ShopFlavor = require(Shared:WaitForChild("ShopFlavor"))
 
 local remotes = ReplicatedStorage:WaitForChild("TinyRepairShopRemotes")
 local stateChanged = remotes:WaitForChild("StateChanged") :: RemoteEvent
@@ -69,7 +70,7 @@ end
 
 local statsFrame = Instance.new("Frame")
 statsFrame.Name = "Stats"
-statsFrame.Size = UDim2.fromOffset(292, 96)
+statsFrame.Size = UDim2.fromOffset(292, 120)
 statsFrame.Position = UDim2.fromOffset(16, 16)
 statsFrame.BackgroundColor3 = Color3.fromRGB(37, 43, 40)
 statsFrame.BackgroundTransparency = 0.08
@@ -81,12 +82,13 @@ makeText(statsFrame, "🔧 " .. Localization.text("Title", localeCode), UDim2.ne
 
 local moneyLabel = makeText(statsFrame, Localization.text("Money", localeCode) .. ": $0", UDim2.new(0.55, -8, 0, 24), UDim2.fromOffset(12, 39), 15, true)
 local reputationLabel = makeText(statsFrame, Localization.text("Reputation", localeCode) .. ": 0", UDim2.new(0.45, -8, 0, 24), UDim2.new(0.55, 0, 0, 39), 15, true)
-local toolLevelLabel = makeText(statsFrame, Localization.text("ToolLevel", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 65), 14, true)
+local toolLevelLabel = makeText(statsFrame, Localization.text("ToolLevel", localeCode) .. ": 0", UDim2.new(0.55, -8, 0, 22), UDim2.fromOffset(12, 65), 14, true)
+local streakLabel = makeText(statsFrame, "🔥 " .. Localization.text("Streak", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 89), 14, true)
 
 local jobFrame = Instance.new("Frame")
 jobFrame.Name = "JobCard"
 jobFrame.AnchorPoint = Vector2.new(0.5, 1)
-jobFrame.Size = UDim2.new(0.92, 0, 0, 196)
+jobFrame.Size = UDim2.new(0.92, 0, 0, 220)
 jobFrame.Position = UDim2.new(0.5, 0, 1, -18)
 jobFrame.BackgroundColor3 = Color3.fromRGB(42, 47, 44)
 jobFrame.BackgroundTransparency = 0.05
@@ -95,15 +97,16 @@ round(jobFrame, 18)
 addStroke(jobFrame, 0.78)
 
 local sizeConstraint = Instance.new("UISizeConstraint")
-sizeConstraint.MaxSize = Vector2.new(620, 205)
-sizeConstraint.MinSize = Vector2.new(280, 180)
+sizeConstraint.MaxSize = Vector2.new(620, 230)
+sizeConstraint.MinSize = Vector2.new(280, 205)
 sizeConstraint.Parent = jobFrame
 
-local jobTitle = makeText(jobFrame, Localization.text("NoJobTitle", localeCode), UDim2.new(1, -28, 0, 30), UDim2.fromOffset(14, 12), 20, true)
-local symptomLabel = makeText(jobFrame, Localization.text("NoJobBody", localeCode), UDim2.new(1, -28, 0, 48), UDim2.fromOffset(14, 48), 15, false)
-local faultLabel = makeText(jobFrame, Localization.text("HiddenFault", localeCode), UDim2.new(1, -28, 0, 24), UDim2.fromOffset(14, 100), 14, true)
-local stepLabel = makeText(jobFrame, "", UDim2.new(1, -28, 0, 38), UDim2.fromOffset(14, 126), 15, true)
-local qualityLabel = makeText(jobFrame, "", UDim2.new(1, -28, 0, 24), UDim2.fromOffset(14, 166), 14, true)
+local jobTitle = makeText(jobFrame, Localization.text("NoJobTitle", localeCode), UDim2.new(1, -28, 0, 30), UDim2.fromOffset(14, 10), 20, true)
+local symptomLabel = makeText(jobFrame, Localization.text("NoJobBody", localeCode), UDim2.new(1, -28, 0, 48), UDim2.fromOffset(14, 44), 15, false)
+local flavorLabel = makeText(jobFrame, "", UDim2.new(1, -28, 0, 24), UDim2.fromOffset(14, 92), 14, true)
+local faultLabel = makeText(jobFrame, Localization.text("HiddenFault", localeCode), UDim2.new(1, -28, 0, 24), UDim2.fromOffset(14, 118), 14, true)
+local stepLabel = makeText(jobFrame, "", UDim2.new(1, -28, 0, 38), UDim2.fromOffset(14, 144), 15, true)
+local qualityLabel = makeText(jobFrame, "", UDim2.new(1, -28, 0, 24), UDim2.fromOffset(14, 184), 14, true)
 
 local toastFrame = Instance.new("Frame")
 toastFrame.Name = "Toast"
@@ -136,6 +139,15 @@ local function showToast(key: string, data: any?)
 		if type(data.quality) == "number" then
 			message ..= "  •  " .. Localization.text("Quality", localeCode) .. " " .. tostring(math.floor(data.quality)) .. "%"
 		end
+		if type(data.streak) == "number" and data.streak > 0 then
+			message ..= "  •  🔥 x" .. tostring(math.floor(data.streak))
+		end
+	elseif key == "JobAccepted" and data then
+		local customer = if type(data.customerId) == "string" then ShopFlavor.getCustomer(data.customerId) else nil
+		local modifier = if type(data.modifierId) == "string" then ShopFlavor.getModifier(data.modifierId) else nil
+		if customer and modifier then
+			message ..= "  " .. Localization.pick(customer.name, localeCode) .. " • " .. Localization.pick(modifier.label, localeCode)
+		end
 	elseif key == "RareFind" and data and type(data.bonus) == "number" then
 		message ..= "  +" .. tostring(math.floor(data.bonus))
 	elseif key == "UpgradePurchased" and data and type(data.level) == "number" then
@@ -159,6 +171,7 @@ local function renderJob(state: any?)
 	if not state then
 		jobTitle.Text = Localization.text("NoJobTitle", localeCode)
 		symptomLabel.Text = Localization.text("NoJobBody", localeCode)
+		flavorLabel.Text = ""
 		faultLabel.Text = Localization.text("HiddenFault", localeCode)
 		stepLabel.Text = ""
 		qualityLabel.Text = ""
@@ -172,6 +185,13 @@ local function renderJob(state: any?)
 
 	jobTitle.Text = "🔧 " .. Localization.pick(job.name, localeCode)
 	symptomLabel.Text = Localization.text("Symptom", localeCode) .. ": " .. Localization.pick(job.symptom, localeCode)
+	local customer = if type(state.customerId) == "string" then ShopFlavor.getCustomer(state.customerId) else nil
+	local modifier = if type(state.modifierId) == "string" then ShopFlavor.getModifier(state.modifierId) else nil
+	if customer and modifier then
+		flavorLabel.Text = "👤 " .. Localization.pick(customer.name, localeCode) .. "  •  " .. Localization.pick(modifier.label, localeCode)
+	else
+		flavorLabel.Text = ""
+	end
 	qualityLabel.Text = Localization.text("Quality", localeCode) .. ": " .. tostring(math.floor(state.quality or 100)) .. "%"
 
 	if state.faultRevealed and state.faultId then
@@ -197,7 +217,7 @@ end
 local offersFrame = Instance.new("Frame")
 offersFrame.Name = "JobOffers"
 offersFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-offersFrame.Size = UDim2.new(0.9, 0, 0, 360)
+offersFrame.Size = UDim2.new(0.9, 0, 0, 430)
 offersFrame.Position = UDim2.fromScale(0.5, 0.5)
 offersFrame.BackgroundColor3 = Color3.fromRGB(34, 39, 37)
 offersFrame.BackgroundTransparency = 0.02
@@ -207,8 +227,8 @@ round(offersFrame, 20)
 addStroke(offersFrame, 0.72)
 
 local offersConstraint = Instance.new("UISizeConstraint")
-offersConstraint.MaxSize = Vector2.new(620, 380)
-offersConstraint.MinSize = Vector2.new(300, 330)
+offersConstraint.MaxSize = Vector2.new(620, 450)
+offersConstraint.MinSize = Vector2.new(300, 410)
 offersConstraint.Parent = offersFrame
 
 local offersTitle = makeText(
@@ -245,8 +265,8 @@ local offerButtons: { TextButton } = {}
 for index = 1, 3 do
 	local button = Instance.new("TextButton")
 	button.Name = "Offer" .. tostring(index)
-	button.Size = UDim2.new(1, -36, 0, 72)
-	button.Position = UDim2.fromOffset(18, 88 + (index - 1) * 82)
+	button.Size = UDim2.new(1, -36, 0, 92)
+	button.Position = UDim2.fromOffset(18, 88 + (index - 1) * 102)
 	button.BackgroundColor3 = Color3.fromRGB(63, 78, 70)
 	button.TextColor3 = Color3.fromRGB(248, 245, 235)
 	button.Font = Enum.Font.Gotham
@@ -291,14 +311,20 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 		local job = RepairCatalog.getJob(offer.jobId)
 		if job then
 			local button = offerButtons[index]
-			local pay = if type(offer.baseReward) == "number" then math.floor(offer.baseReward) else 0
 			local rep = if type(offer.reputationReward) == "number" then math.floor(offer.reputationReward) else 0
-			button.Text = "  " .. Localization.pick(job.name, localeCode)
+			local quotedPay = if type(offer.quotedReward) == "number" then math.floor(offer.quotedReward) else 0
+			local customer = if type(offer.customerId) == "string" then ShopFlavor.getCustomer(offer.customerId) else nil
+			local modifier = if type(offer.modifierId) == "string" then ShopFlavor.getModifier(offer.modifierId) else nil
+			local customerName = if customer then Localization.pick(customer.name, localeCode) else "?"
+			local modifierName = if modifier then Localization.pick(modifier.label, localeCode) else Localization.text("SpecialOrder", localeCode)
+			button.Text = "  👤 " .. customerName .. "  •  " .. modifierName
+				.. "\n  🔧 "
+				.. Localization.pick(job.name, localeCode)
 				.. "\n  "
-				.. Localization.text("BasePay", localeCode)
+				.. Localization.text("QuotedPay", localeCode)
 				.. ": $"
-				.. tostring(pay)
-				.. "+   •   +"
+				.. tostring(quotedPay)
+				.. "   •   +"
 				.. tostring(rep)
 				.. " "
 				.. Localization.text("RepShort", localeCode)
@@ -476,16 +502,19 @@ local function bindStats()
 	local cash = leaderstats:WaitForChild("Cash") :: IntValue
 	local reputation = leaderstats:WaitForChild("Reputation") :: IntValue
 	local toolLevel = leaderstats:WaitForChild("ToolLevel") :: IntValue
+	local streak = leaderstats:WaitForChild("Streak") :: IntValue
 
 	local function refresh()
 		moneyLabel.Text = Localization.text("Money", localeCode) .. ": $" .. tostring(cash.Value)
 		reputationLabel.Text = Localization.text("Reputation", localeCode) .. ": " .. tostring(reputation.Value)
 		toolLevelLabel.Text = Localization.text("ToolLevel", localeCode) .. ": " .. tostring(toolLevel.Value)
+		streakLabel.Text = "🔥 " .. Localization.text("Streak", localeCode) .. ": " .. tostring(streak.Value)
 	end
 
 	cash:GetPropertyChangedSignal("Value"):Connect(refresh)
 	reputation:GetPropertyChangedSignal("Value"):Connect(refresh)
 	toolLevel:GetPropertyChangedSignal("Value"):Connect(refresh)
+	streak:GetPropertyChangedSignal("Value"):Connect(refresh)
 	refresh()
 end
 
