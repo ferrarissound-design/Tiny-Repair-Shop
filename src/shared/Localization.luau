@@ -16,6 +16,7 @@ local STRINGS: { [string]: LocalizedText } = {
 	Reputation = { en = "Reputation", ja = "評判" },
 	Quality = { en = "Quality", ja = "仕上がり" },
 	ToolLevel = { en = "Tools Lv.", ja = "工具 Lv." },
+	Streak = { en = "Perfect Streak", ja = "完璧連続" },
 
 	NoJobTitle = { en = "No repair in progress", ja = "修理依頼はありません" },
 	NoJobBody = {
@@ -60,6 +61,9 @@ local STRINGS: { [string]: LocalizedText } = {
 	ChooseRepair = { en = "Choose a repair", ja = "修理依頼を選ぶ" },
 	ChooseRepairHint = { en = "Pick the job you want to take.", ja = "受けたい修理を選んでください。" },
 	BasePay = { en = "Pay", ja = "報酬" },
+	QuotedPay = { en = "Est. pay", ja = "報酬目安" },
+	SpecialOrder = { en = "Special order", ja = "特別依頼" },
+	PerfectChain = { en = "Perfect streak", ja = "完璧連続" },
 	RepShort = { en = "Rep", ja = "評判" },
 	Close = { en = "Close", ja = "閉じる" },
 }
