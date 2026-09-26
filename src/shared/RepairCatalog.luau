@@ -317,8 +317,8 @@ RepairCatalog.Jobs = {
 		id = "midnight_radio",
 		name = { en = "Midnight Radio", ja = "真夜中のラジオ" },
 		symptom = {
-			en = "It tunes itself to the same station at 3:13 AM. The owner removed the batteries. It kept playing.",
-			ja = "午前3:13になると勝手に同じ局へ合うそうです。電池を抜いても、鳴り続けたとか。",
+			en = "At 3:13 AM it tunes itself. The owner removed the batteries. It kept playing.",
+			ja = "午前3:13に勝手に選局。電池を抜いても鳴り続けたそうです。",
 		},
 		modelKind = "Radio",
 		baseReward = 180,
@@ -346,8 +346,8 @@ RepairCatalog.Jobs = {
 		id = "laughing_toy_car",
 		name = { en = "Laughing Toy Car", ja = "笑うおもちゃの車" },
 		symptom = {
-			en = "It rolls toward closed doors and laughs when it reaches them. Nobody remembers it having a speaker.",
-			ja = "閉じたドアへ勝手に走り、着くと笑うそうです。持ち主は『スピーカーなんて無かった』と言っています。",
+			en = "It rolls to closed doors and laughs. The owner says it never had a speaker.",
+			ja = "閉じたドアへ勝手に走って笑う。持ち主いわく、スピーカーは無かったそうです。",
 		},
 		modelKind = "ToyCar",
 		baseReward = 205,
@@ -376,8 +376,8 @@ RepairCatalog.Jobs = {
 		id = "blank_photo_camera",
 		name = { en = "Blank Photo Camera", ja = "空白を写すカメラ" },
 		symptom = {
-			en = "Every photo is almost blank, except for a dark figure the photographer says was never there.",
-			ja = "写真はほぼ真っ白。ただし、撮った覚えのない黒い人影だけが毎回残るそうです。",
+			en = "Photos come out blank, except for a dark figure nobody remembers seeing.",
+			ja = "写真は真っ白なのに、誰も見ていない黒い人影だけが残るそうです。",
 		},
 		modelKind = "Camera",
 		baseReward = 245,
