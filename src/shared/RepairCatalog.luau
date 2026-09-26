@@ -231,6 +231,86 @@ RepairCatalog.Jobs = {
 			},
 		},
 	},
+	{
+		id = "alarm_clock",
+		name = { en = "Alarm Clock", ja = "目覚まし時計" },
+		symptom = {
+			en = "It loses time overnight or the alarm only gives a tiny click.",
+			ja = "一晩で時間がズレるか、アラームが小さくカチッと鳴るだけだそうです。",
+		},
+		modelKind = "AlarmClock",
+		baseReward = 125,
+		reputationReward = 3,
+		minReputation = 13,
+		faults = {
+			{
+				id = "slipping_gear",
+				label = { en = "Slipping clock gear", ja = "時計ギアの空回り" },
+				rewardBonus = 30,
+				steps = {
+					step("inspect", "Inspect", "Inspect the clock", "時計を点検する"),
+					action("open_clock", "Unscrew", "Open the rear cover", "背面カバーを開ける", true, 0.19, 1.08),
+					action("clean_gears", "Clean", "Clean the gear train", "ギアを清掃する", nil, 0.18, 1.12),
+					action("seat_gear", "Adjust", "Seat the slipping gear", "空回りするギアを調整する", nil, 0.16, 1.18),
+					action("close_clock", "Assemble", "Close the rear cover", "背面カバーを閉じる", nil, 0.18, 1.12),
+					step("test", "Test", "Run a fast time test", "早送りで時刻テストをする"),
+				},
+			},
+			{
+				id = "alarm_contact",
+				label = { en = "Bent alarm contact", ja = "アラーム接点の曲がり" },
+				rewardBonus = 40,
+				steps = {
+					step("inspect", "Inspect", "Inspect the clock", "時計を点検する"),
+					action("open_clock", "Unscrew", "Open the rear cover", "背面カバーを開ける", true, 0.19, 1.08),
+					action("clean_contact", "Clean", "Clean the alarm contact", "アラーム接点を清掃する", nil, 0.17, 1.16),
+					action("bend_contact", "Adjust", "Realign the alarm contact", "アラーム接点を調整する", nil, 0.15, 1.23),
+					action("close_clock", "Assemble", "Close the rear cover", "背面カバーを閉じる", nil, 0.17, 1.16),
+					step("test", "Test", "Trigger the alarm test", "アラームを鳴らして確認する"),
+				},
+			},
+		},
+	},
+	{
+		id = "instant_camera",
+		name = { en = "Instant Camera", ja = "インスタントカメラ" },
+		symptom = {
+			en = "Photos jam halfway out, or the flash refuses to charge.",
+			ja = "写真が途中で詰まるか、フラッシュが充電されないそうです。",
+		},
+		modelKind = "Camera",
+		baseReward = 155,
+		reputationReward = 4,
+		minReputation = 18,
+		faults = {
+			{
+				id = "jammed_rollers",
+				label = { en = "Dirty eject rollers", ja = "排出ローラーの汚れ" },
+				rewardBonus = 40,
+				steps = {
+					step("inspect", "Inspect", "Inspect the camera", "カメラを点検する"),
+					action("open_camera", "Unscrew", "Open the film door assembly", "フィルム扉まわりを開ける", true, 0.17, 1.16),
+					action("clean_rollers", "Clean", "Clean the eject rollers", "排出ローラーを清掃する", nil, 0.16, 1.22),
+					action("align_rollers", "Adjust", "Align the roller pressure", "ローラー圧を調整する", nil, 0.14, 1.28),
+					action("close_camera", "Assemble", "Close the film door", "フィルム扉を閉じる", nil, 0.16, 1.20),
+					step("test", "Test", "Eject a test card", "テストカードを排出する"),
+				},
+			},
+			{
+				id = "flash_contact",
+				label = { en = "Loose flash contact", ja = "フラッシュ接点の緩み" },
+				rewardBonus = 55,
+				steps = {
+					step("inspect", "Inspect", "Inspect the camera", "カメラを点検する"),
+					action("open_camera", "Unscrew", "Open the top shell", "上部カバーを開ける", true, 0.17, 1.18),
+					action("clean_contact", "Clean", "Clean the flash contact", "フラッシュ接点を清掃する", nil, 0.15, 1.25),
+					action("reseat_flash", "Repair", "Reseat the flash connector", "フラッシュ端子を差し直す", nil, 0.13, 1.32),
+					action("close_camera", "Assemble", "Close the top shell", "上部カバーを閉じる", nil, 0.15, 1.24),
+					step("test", "Test", "Charge and fire the flash", "フラッシュを充電して発光確認する"),
+				},
+			},
+		},
+	},
 } :: { JobDefinition }
 
 function RepairCatalog.getJob(jobId: string): JobDefinition?
