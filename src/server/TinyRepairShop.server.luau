@@ -420,6 +420,13 @@ local function repairQuality(mistakes: number): number
 	return math.max(0, 100 - mistakes * 20)
 end
 
+local function breakPerfectStreak(player: Player)
+	local streakValue = getStatValue(player, "Streak")
+	if streakValue and streakValue.Value > 0 then
+		streakValue.Value = 0
+	end
+end
+
 local function makePayload(state: JobState?)
 	if not state then
 		return nil
@@ -654,6 +661,7 @@ local function beginSkillCheck(player: Player, state: JobState, stepDefinition)
 
 		state.pendingSkill = nil
 		state.mistakes += 1
+		breakPerfectStreak(player)
 		updatePrompt(player)
 		pushState(player)
 		toastEvent:FireClient(player, "SkillCheckExpired", {})
@@ -969,6 +977,7 @@ skillCheckSubmit.OnServerEvent:Connect(function(player: Player)
 		advanceRepair(player)
 	else
 		state.mistakes += 1
+		breakPerfectStreak(player)
 		updatePrompt(player)
 		pushState(player)
 		toastEvent:FireClient(player, "SkillCheckFail", {})
