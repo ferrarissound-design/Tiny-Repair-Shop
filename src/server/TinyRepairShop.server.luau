@@ -9,6 +9,7 @@ local Lighting = game:GetService("Lighting")
 
 local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
+local ShopFlavor = require(Shared:WaitForChild("ShopFlavor"))
 
 local DATASTORE_NAME = "TinyRepairShopPlayerData_v1"
 local SAVE_KEY_PREFIX = "player_"
@@ -19,6 +20,8 @@ local PERFECT_REPAIR_BONUS = 20
 local GOOD_REPAIR_BONUS = 10
 local TOOL_UPGRADE_COSTS = { 150, 400, 900 }
 local TOOL_SKILL_WIDTH_BONUS = 0.025
+local STREAK_BONUS_PER_LEVEL = 5
+local STREAK_BONUS_CAP = 30
 
 local playerStore = DataStoreService:GetDataStore(DATASTORE_NAME)
 local random = Random.new()
@@ -34,11 +37,15 @@ type SkillCheckState = {
 type OfferState = {
 	jobId: string,
 	faultId: string,
+	customerId: string,
+	modifierId: string,
 }
 
 type JobState = {
 	jobId: string,
 	faultId: string,
+	customerId: string,
+	modifierId: string,
 	stepIndex: number,
 	faultRevealed: boolean,
 	bonus: number,
@@ -326,6 +333,33 @@ local function buildController(model: Model): BasePart
 	return root
 end
 
+local function buildAlarmClock(model: Model): BasePart
+	local root = createVisualPart(model, "Body", Vector3.new(4.2, 2.8, 1.8), CFrame.new(), Color3.fromRGB(213, 198, 154))
+	local face = createVisualPart(model, "Face", Vector3.new(0.28, 2.15, 2.15), CFrame.new(0, 0.1, -1.02) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(244, 239, 215), Enum.PartType.Cylinder)
+	face.Material = Enum.Material.SmoothPlastic
+	for i = 0, 3 do
+		local angle = math.rad(i * 90)
+		createVisualPart(model, "Mark_" .. tostring(i + 1), Vector3.new(0.15, 0.15, 0.15), CFrame.new(math.cos(angle) * 0.78, math.sin(angle) * 0.78 + 0.1, -1.2), Color3.fromRGB(66, 60, 52), Enum.PartType.Ball)
+	end
+	createVisualPart(model, "HourHand", Vector3.new(0.12, 0.75, 0.12), CFrame.new(0.15, 0.25, -1.22) * CFrame.Angles(0, 0, math.rad(-25)), Color3.fromRGB(55, 52, 48))
+	createVisualPart(model, "MinuteHand", Vector3.new(0.1, 1.0, 0.1), CFrame.new(-0.2, 0.35, -1.24) * CFrame.Angles(0, 0, math.rad(28)), Color3.fromRGB(55, 52, 48))
+	createVisualPart(model, "BellLeft", Vector3.new(1.1, 0.55, 1.1), CFrame.new(-1.25, 1.75, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(171, 145, 91), Enum.PartType.Cylinder)
+	createVisualPart(model, "BellRight", Vector3.new(1.1, 0.55, 1.1), CFrame.new(1.25, 1.75, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(171, 145, 91), Enum.PartType.Cylinder)
+	return root
+end
+
+local function buildCamera(model: Model): BasePart
+	local root = createVisualPart(model, "Body", Vector3.new(4.8, 3.4, 2.2), CFrame.new(), Color3.fromRGB(229, 220, 196))
+	createVisualPart(model, "Accent", Vector3.new(4.9, 1.0, 2.28), CFrame.new(0, -0.65, 0), Color3.fromRGB(73, 82, 78))
+	createVisualPart(model, "Lens", Vector3.new(1.35, 1.35, 0.85), CFrame.new(-0.65, 0.15, -1.45) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(38, 42, 44), Enum.PartType.Cylinder)
+	createVisualPart(model, "LensGlass", Vector3.new(0.8, 0.8, 0.18), CFrame.new(-0.65, 0.15, -1.9) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(91, 132, 145), Enum.PartType.Cylinder)
+	createVisualPart(model, "Viewfinder", Vector3.new(0.8, 0.6, 0.35), CFrame.new(1.45, 0.95, -1.2), Color3.fromRGB(50, 55, 55))
+	createVisualPart(model, "Flash", Vector3.new(0.9, 0.55, 0.25), CFrame.new(0.45, 1.0, -1.25), Color3.fromRGB(238, 226, 164))
+	local slot = createVisualPart(model, "PhotoSlot", Vector3.new(2.7, 0.18, 0.45), CFrame.new(0, -1.78, -0.3), Color3.fromRGB(45, 47, 45))
+	slot.Material = Enum.Material.Metal
+	return root
+end
+
 local function buildRepairItem(jobId: string, player: Player): (Model?, BasePart?)
 	local job = RepairCatalog.getJob(jobId)
 	if not job then
@@ -347,6 +381,10 @@ local function buildRepairItem(jobId: string, player: Player): (Model?, BasePart
 		primary = buildToyCar(model)
 	elseif job.modelKind == "Controller" then
 		primary = buildController(model)
+	elseif job.modelKind == "AlarmClock" then
+		primary = buildAlarmClock(model)
+	elseif job.modelKind == "Camera" then
+		primary = buildCamera(model)
 	else
 		primary = createVisualPart(model, "Item", Vector3.new(3, 2, 2), CFrame.new(), Color3.fromRGB(120, 120, 120))
 	end
@@ -382,6 +420,13 @@ local function repairQuality(mistakes: number): number
 	return math.max(0, 100 - mistakes * 20)
 end
 
+local function breakPerfectStreak(player: Player)
+	local streakValue = getStatValue(player, "Streak")
+	if streakValue and streakValue.Value > 0 then
+		streakValue.Value = 0
+	end
+end
+
 local function makePayload(state: JobState?)
 	if not state then
 		return nil
@@ -398,6 +443,8 @@ local function makePayload(state: JobState?)
 	return {
 		jobId = state.jobId,
 		faultId = if state.faultRevealed then state.faultId else nil,
+		customerId = state.customerId,
+		modifierId = state.modifierId,
 		stepIndex = state.stepIndex,
 		totalSteps = #fault.steps,
 		faultRevealed = state.faultRevealed,
@@ -461,8 +508,23 @@ local function finishJob(player: Player, state: JobState)
 		return
 	end
 
+	local modifier = ShopFlavor.getModifier(state.modifierId) or ShopFlavor.Modifiers[1]
 	local qualityBonus = qualityBonusFor(state.mistakes)
-	local totalReward = job.baseReward + fault.rewardBonus + state.bonus + qualityBonus
+	local modifierPerfectBonus = if state.mistakes == 0 then modifier.perfectBonus else 0
+	local streakValue = getStatValue(player, "Streak")
+	local streakBonus = 0
+
+	if streakValue then
+		if state.mistakes == 0 then
+			streakValue.Value += 1
+			streakBonus = math.min(streakValue.Value * STREAK_BONUS_PER_LEVEL, STREAK_BONUS_CAP)
+		else
+			streakValue.Value = 0
+		end
+	end
+
+	local coreReward = math.floor((job.baseReward + fault.rewardBonus) * modifier.rewardMultiplier + 0.5)
+	local totalReward = coreReward + state.bonus + qualityBonus + modifierPerfectBonus + streakBonus
 	local moneyValue = getStatValue(player, "Cash")
 	local reputationValue = getStatValue(player, "Reputation")
 
@@ -477,6 +539,10 @@ local function finishJob(player: Player, state: JobState)
 		reward = totalReward,
 		quality = repairQuality(state.mistakes),
 		qualityBonus = qualityBonus,
+		modifierPerfectBonus = modifierPerfectBonus,
+		streakBonus = streakBonus,
+		streak = if streakValue then streakValue.Value else 0,
+		modifierId = state.modifierId,
 	})
 
 	destroyPlayerItem(player)
@@ -560,15 +626,17 @@ local function beginSkillCheck(player: Player, state: JobState, stepDefinition)
 
 	local toolLevelValue = getStatValue(player, "ToolLevel")
 	local toolLevel = if toolLevelValue then toolLevelValue.Value else 0
+	local modifier = ShopFlavor.getModifier(state.modifierId) or ShopFlavor.Modifiers[1]
 	local widthBonus = toolLevel * TOOL_SKILL_WIDTH_BONUS
-	local width = math.clamp((stepDefinition.skillWidth or 0.24) + widthBonus, 0.12, 0.48)
+	local baseWidth = ((stepDefinition.skillWidth or 0.24) + widthBonus) * modifier.skillWidthMultiplier
+	local width = math.clamp(baseWidth, 0.11, 0.48)
 	local half = width * 0.5
 	local center = random:NextNumber(0.22 + half, 0.78 - half)
 	local startTime = workspace:GetServerTimeNow() + 0.35
 	local pending: SkillCheckState = {
 		stepIndex = state.stepIndex,
 		startTime = startTime,
-		speed = math.clamp(stepDefinition.skillSpeed or 0.8, 0.45, 1.5),
+		speed = math.clamp((stepDefinition.skillSpeed or 0.8) * modifier.skillSpeedMultiplier, 0.45, 1.65),
 		targetStart = center - half,
 		targetEnd = center + half,
 	}
@@ -593,6 +661,7 @@ local function beginSkillCheck(player: Player, state: JobState, stepDefinition)
 
 		state.pendingSkill = nil
 		state.mistakes += 1
+		breakPerfectStreak(player)
 		updatePrompt(player)
 		pushState(player)
 		toastEvent:FireClient(player, "SkillCheckExpired", {})
@@ -643,7 +712,7 @@ local function connectRepairPrompt(player: Player, state: JobState, primary: Bas
 	updatePrompt(player)
 end
 
-local function startJob(player: Player, jobId: string, faultId: string)
+local function startJob(player: Player, jobId: string, faultId: string, customerId: string, modifierId: string)
 	if states[player] then
 		toastEvent:FireClient(player, "AlreadyWorking", {})
 		return
@@ -655,6 +724,11 @@ local function startJob(player: Player, jobId: string, faultId: string)
 	end
 	local fault = RepairCatalog.getFault(job, faultId)
 	if not fault then
+		return
+	end
+	local customer = ShopFlavor.getCustomer(customerId)
+	local modifier = ShopFlavor.getModifier(modifierId)
+	if not customer or not modifier then
 		return
 	end
 
@@ -672,6 +746,8 @@ local function startJob(player: Player, jobId: string, faultId: string)
 	local state: JobState = {
 		jobId = job.id,
 		faultId = fault.id,
+		customerId = customer.id,
+		modifierId = modifier.id,
 		stepIndex = 1,
 		faultRevealed = false,
 		bonus = 0,
@@ -685,7 +761,10 @@ local function startJob(player: Player, jobId: string, faultId: string)
 	states[player] = state
 	connectRepairPrompt(player, state, primary)
 	pushState(player)
-	toastEvent:FireClient(player, "JobAccepted", {})
+	toastEvent:FireClient(player, "JobAccepted", {
+		customerId = customer.id,
+		modifierId = modifier.id,
+	})
 end
 
 local function shuffledJobs(jobs)
@@ -723,15 +802,22 @@ local function presentOffers(player: Player)
 	for index = 1, count do
 		local job = shuffled[index]
 		local fault = job.faults[random:NextInteger(1, #job.faults)]
+		local customer = ShopFlavor.pickCustomer(random)
+		local modifier = ShopFlavor.pickModifier(random)
 		local offer: OfferState = {
 			jobId = job.id,
 			faultId = fault.id,
+			customerId = customer.id,
+			modifierId = modifier.id,
 		}
 		table.insert(playerOffers, offer)
 		table.insert(payload, {
 			jobId = job.id,
+			customerId = customer.id,
+			modifierId = modifier.id,
 			baseReward = job.baseReward,
 			reputationReward = job.reputationReward,
+			quotedReward = math.floor((job.baseReward + fault.rewardBonus) * modifier.rewardMultiplier + 0.5),
 		})
 	end
 
@@ -758,6 +844,11 @@ local function loadPlayer(player: Player)
 	toolLevel.Name = "ToolLevel"
 	toolLevel.Value = 0
 	toolLevel.Parent = leaderstats
+
+	local streak = Instance.new("IntValue")
+	streak.Name = "Streak"
+	streak.Value = 0
+	streak.Parent = leaderstats
 
 	stats[player] = { money = money, reputation = reputation, toolLevel = toolLevel }
 
@@ -830,7 +921,7 @@ jobOfferChosen.OnServerEvent:Connect(function(player: Player, offerIndex: number
 		return
 	end
 
-	startJob(player, offer.jobId, offer.faultId)
+	startJob(player, offer.jobId, offer.faultId, offer.customerId, offer.modifierId)
 end)
 
 toolUpgradePrompt.Triggered:Connect(function(player: Player)
@@ -886,6 +977,7 @@ skillCheckSubmit.OnServerEvent:Connect(function(player: Player)
 		advanceRepair(player)
 	else
 		state.mistakes += 1
+		breakPerfectStreak(player)
 		updatePrompt(player)
 		pushState(player)
 		toastEvent:FireClient(player, "SkillCheckFail", {})

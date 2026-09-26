@@ -23,8 +23,12 @@ Current repair families:
 - Portable radio
 - Toy car
 - Game controller
+- Alarm clock
+- Instant camera
 
 Each item has multiple hidden fault paths, so the same device can require a different repair.
+
+Customer offers now also have personalities and repair modifiers. A normal fan repair can arrive as a rush job, a precious keepsake, or a precision order. Special orders change timing difficulty and payout instead of being cosmetic labels.
 
 ## Roblox-first design
 
@@ -32,6 +36,8 @@ Each item has multiple hidden fault paths, so the same device can require a diff
 - Rojo-managed source tree.
 - Touch, controller, and keyboard friendly.
 - Server-validated customer offer selection with up to three unlocked jobs at once.
+- Six customer personalities and weighted special-order modifiers.
+- Perfect-repair streaks that add a capped cash bonus for consistent zero-mistake work.
 - Repair prompts use Roblox \`ProximityPrompt\`.
 - Timing minigame uses a large touch-friendly button.
 - Server-authoritative repair progress, minigame judging, and rewards.
@@ -74,8 +80,12 @@ src/
 - Reputation 2: Portable Radio
 - Reputation 5: Toy Car
 - Reputation 9: Game Controller
+- Reputation 13: Alarm Clock
+- Reputation 18: Instant Camera
 
 Perfect repairs receive the highest quality bonus. One mistake still gets a smaller bonus; additional mistakes simply reduce quality.
+
+Zero-mistake repairs also build a session perfect streak. Each level adds a small cash bonus, capped so the streak feels valuable without overpowering job choice. Special orders can add their own perfect-work premium.
 
 ### Tool upgrades
 
@@ -90,9 +100,9 @@ Each level slightly widens skill-check success zones. This makes money useful be
 ## Good next steps
 
 - Workshop upgrades and decoration
-- Customer personalities and repeat customers
+- Repeat-customer story arcs
 - Physical tool animations and sound feedback
 - Repair collection shelf
 - Daily/rare jobs and mystery devices
-- More device families
+- Workshop upgrades and visible trophies
 - Multiplayer workbench roles
