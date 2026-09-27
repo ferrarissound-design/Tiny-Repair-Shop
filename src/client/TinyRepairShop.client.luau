@@ -131,6 +131,102 @@ local toastText = makeText(toastFrame, "", UDim2.new(1, -24, 1, -12), UDim2.from
 toastText.TextXAlignment = Enum.TextXAlignment.Center
 toastText.TextYAlignment = Enum.TextYAlignment.Center
 
+local storyFrame = Instance.new("Frame")
+storyFrame.Name = "CustomerStory"
+storyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+storyFrame.Size = UDim2.new(0.86, 0, 0, 82)
+storyFrame.Position = UDim2.fromScale(0.5, 0.28)
+storyFrame.BackgroundColor3 = Color3.fromRGB(50, 55, 52)
+storyFrame.BackgroundTransparency = 0.04
+storyFrame.Visible = false
+storyFrame.Parent = gui
+round(storyFrame, 16)
+addStroke(storyFrame, 0.78)
+
+local storyConstraint = Instance.new("UISizeConstraint")
+storyConstraint.MaxSize = Vector2.new(540, 90)
+storyConstraint.MinSize = Vector2.new(290, 76)
+storyConstraint.Parent = storyFrame
+
+local storyName = makeText(storyFrame, "", UDim2.new(1, -24, 0, 24), UDim2.fromOffset(12, 8), 15, true)
+local storyText = makeText(storyFrame, "", UDim2.new(1, -24, 0, 42), UDim2.fromOffset(12, 32), 14, false)
+
+local storySequence = 0
+local function showCustomerStory(customerId: string, tier: number)
+	local customer = ShopFlavor.getCustomer(customerId)
+	local story = ShopFlavor.getCustomerStory(customerId, tier)
+	if not customer or not story then
+		return
+	end
+	storySequence += 1
+	local sequence = storySequence
+	storyName.Text = "👤 " .. Localization.pick(customer.name, localeCode)
+	storyText.Text = Localization.pick(story, localeCode)
+	storyFrame.Visible = true
+	storyFrame.BackgroundTransparency = 0.04
+	task.delay(4.2, function()
+		if sequence == storySequence then
+			storyFrame.Visible = false
+		end
+	end)
+end
+
+local shiftFrame = Instance.new("Frame")
+shiftFrame.Name = "ShiftSummary"
+shiftFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+shiftFrame.Size = UDim2.new(0.88, 0, 0, 272)
+shiftFrame.Position = UDim2.fromScale(0.5, 0.5)
+shiftFrame.BackgroundColor3 = Color3.fromRGB(35, 42, 38)
+shiftFrame.BackgroundTransparency = 0.02
+shiftFrame.Visible = false
+shiftFrame.Parent = gui
+round(shiftFrame, 20)
+addStroke(shiftFrame, 0.68)
+
+local shiftConstraint = Instance.new("UISizeConstraint")
+shiftConstraint.MaxSize = Vector2.new(470, 285)
+shiftConstraint.MinSize = Vector2.new(300, 250)
+shiftConstraint.Parent = shiftFrame
+
+local shiftTitle = makeText(shiftFrame, "🧾 " .. Localization.text("ShiftComplete", localeCode), UDim2.new(1, -28, 0, 34), UDim2.fromOffset(14, 14), 22, true)
+shiftTitle.TextXAlignment = Enum.TextXAlignment.Center
+local shiftBody = makeText(shiftFrame, "", UDim2.new(1, -32, 0, 140), UDim2.fromOffset(16, 58), 16, false)
+shiftBody.TextYAlignment = Enum.TextYAlignment.Top
+
+local nextShiftButton = Instance.new("TextButton")
+nextShiftButton.Name = "NextShift"
+nextShiftButton.AnchorPoint = Vector2.new(0.5, 1)
+nextShiftButton.Size = UDim2.new(0.72, 0, 0, 52)
+nextShiftButton.Position = UDim2.new(0.5, 0, 1, -16)
+nextShiftButton.BackgroundColor3 = Color3.fromRGB(78, 116, 93)
+nextShiftButton.Text = Localization.text("NextShift", localeCode)
+nextShiftButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+nextShiftButton.Font = Enum.Font.GothamBold
+nextShiftButton.TextSize = 17
+nextShiftButton.Parent = shiftFrame
+round(nextShiftButton, 13)
+
+nextShiftButton.Activated:Connect(function()
+	shiftFrame.Visible = false
+end)
+
+local function showShiftSummary(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local shiftNumber = if type(data.shiftNumber) == "number" then math.floor(data.shiftNumber) else 1
+	local averageQuality = if type(data.averageQuality) == "number" then math.floor(data.averageQuality) else 0
+	local perfectRepairs = if type(data.perfectRepairs) == "number" then math.floor(data.perfectRepairs) else 0
+	local earnings = if type(data.earnings) == "number" then math.floor(data.earnings) else 0
+	local bonus = if type(data.bonus) == "number" then math.floor(data.bonus) else 0
+	shiftTitle.Text = "🧾 " .. Localization.text("ShiftComplete", localeCode) .. "  #" .. tostring(shiftNumber)
+	shiftBody.Text = Localization.text("ShiftEarnings", localeCode) .. ": $" .. tostring(earnings)
+		.. "\n" .. Localization.text("ShiftQuality", localeCode) .. ": " .. tostring(averageQuality) .. "%"
+		.. "\n" .. Localization.text("ShiftPerfects", localeCode) .. ": " .. tostring(perfectRepairs) .. "/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT)
+		.. "\n\n" .. Localization.text("ShiftBonus", localeCode) .. ": +$" .. tostring(bonus)
+	shiftFrame.Visible = true
+end
+
 local toastSequence = 0
 
 local function showToast(key: string, data: any?)
@@ -161,6 +257,16 @@ local function showToast(key: string, data: any?)
 		message ..= "  Lv." .. tostring(math.floor(data.level))
 	elseif key == "UpgradeNeedCash" and data and type(data.cost) == "number" then
 		message ..= "  $" .. tostring(math.floor(data.cost))
+	elseif key == "ShopUpgraded" and data and type(data.level) == "number" then
+		message ..= "  Lv." .. tostring(math.floor(data.level))
+	elseif key == "ShopUpgradeNeedCash" and data and type(data.cost) == "number" then
+		message ..= "  $" .. tostring(math.floor(data.cost))
+	end
+
+	if (key == "JobAccepted" or key == "OddityAccepted") and data
+		and type(data.customerId) == "string"
+		and type(data.relationshipTier) == "number" then
+		showCustomerStory(data.customerId, data.relationshipTier)
 	end
 
 	toastText.Text = message
