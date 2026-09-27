@@ -446,7 +446,7 @@ local function pulseRadio(model: Model)
 			{ CFrame = original * CFrame.Angles(math.rad(80), 0, 0) }
 		)
 		turn:Play()
-		turn.Completed:Wait()
+		task.wait(0.3)
 		if dial.Parent then
 			TweenService:Create(
 				dial,
