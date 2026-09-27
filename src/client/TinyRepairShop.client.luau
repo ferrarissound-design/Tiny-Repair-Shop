@@ -262,6 +262,11 @@ local function showToast(key: string, data: any?)
 		message ..= "  Lv." .. tostring(math.floor(data.level))
 	elseif key == "ShopUpgradeNeedCash" and data and type(data.cost) == "number" then
 		message ..= "  $" .. tostring(math.floor(data.cost))
+	elseif key == "NewRepairUnlocked" and data and type(data.jobId) == "string" then
+		local unlockedJob = RepairCatalog.getJob(data.jobId)
+		if unlockedJob then
+			message ..= "  " .. Localization.pick(unlockedJob.name, localeCode)
+		end
 	end
 
 	if (key == "JobAccepted" or key == "OddityAccepted") and data
