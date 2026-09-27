@@ -689,12 +689,24 @@ local function finishJob(player: Player, state: JobState)
 	local totalReward = coreReward + state.bonus + qualityBonus + modifierPerfectBonus + streakBonus
 	local moneyValue = getStatValue(player, "Cash")
 	local reputationValue = getStatValue(player, "Reputation")
+	local previousReputation = if reputationValue then reputationValue.Value else 0
 
 	if moneyValue then
 		moneyValue.Value += totalReward
 	end
 	if reputationValue then
 		reputationValue.Value += job.reputationReward
+	end
+
+	local newlyUnlockedJobId: string? = nil
+	local currentReputation = if reputationValue then reputationValue.Value else previousReputation
+	for _, candidate in RepairCatalog.Jobs do
+		if not candidate.rareOnly
+			and candidate.minReputation > previousReputation
+			and candidate.minReputation <= currentReputation then
+			newlyUnlockedJobId = candidate.id
+			break
+		end
 	end
 
 	local oddJobsValue = getStatValue(player, "OddJobs")
@@ -773,6 +785,14 @@ local function finishJob(player: Player, state: JobState)
 
 	if shiftSummary then
 		toastEvent:FireClient(player, "ShiftComplete", shiftSummary)
+	end
+
+	if newlyUnlockedJobId then
+		task.delay(1.0, function()
+			if player.Parent == Players then
+				toastEvent:FireClient(player, "NewRepairUnlocked", { jobId = newlyUnlockedJobId })
+			end
+		end)
 	end
 
 	destroyPlayerItem(player)
