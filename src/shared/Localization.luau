@@ -36,6 +36,7 @@ local STRINGS: { [string]: LocalizedText } = {
 	OddityArrived = { en = "Something strange is in today's repair pile...", ja = "今日の依頼に、妙なものが紛れています…" },
 	OddityAccepted = { en = "Odd job accepted. Try not to ask too many questions.", ja = "怪しい依頼を受けました。深く考えない方がよさそうです。" },
 	OddityComplete = { en = "Odd job complete. The shop log has been updated.", ja = "怪しい依頼を修理完了。工房の記録に追加しました。" },
+	NewCuriosity = { en = "New curiosity added to the shelf!", ja = "新しい奇妙な修理品が棚に追加されました！" },
 	RareFind = {
 		en = "You found forgotten coins inside! Bonus added.",
 		ja = "中から忘れ物のコインを発見！ ボーナス獲得。",

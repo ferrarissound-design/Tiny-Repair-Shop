@@ -97,6 +97,8 @@ Odd Jobs never appear in the normal unlocked-job pool. Starting at Reputation 5,
 
 Odd Jobs use the dedicated Odd Job modifier and increment a persistent `OddJobs` stat when completed.
 
+Each unique Odd Job also unlocks a permanent entry in the player's **Curiosities shelf** at the back of the workshop. Undiscovered slots show `???`; discovered jobs display a miniature of the repaired item and a localized name plaque. The shelf contents are rendered locally, so each player sees their own collection even in multiplayer. Completing all three current oddities adds a collection-complete badge to the shelf.
+
 Perfect repairs receive the highest quality bonus. One mistake still gets a smaller bonus; additional mistakes simply reduce quality.
 
 Zero-mistake repairs also build a session perfect streak. Each level adds a small cash bonus, capped so the streak feels valuable without overpowering job choice. Special orders can add their own perfect-work premium.
@@ -118,6 +120,6 @@ Each level slightly widens skill-check success zones. This makes money useful be
 - Physical tool animations and sound feedback
 - Repair collection shelf
 - Odd Job follow-up story arcs
-- Repair collection shelf for completed oddities
+- More Curiosities shelf entries as new oddities are added
 - Workshop upgrades and visible trophies
 - Multiplayer workbench roles
