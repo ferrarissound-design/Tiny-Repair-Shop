@@ -16,6 +16,7 @@ local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
 local Localization = require(Shared:WaitForChild("Localization"))
 local ShopFlavor = require(Shared:WaitForChild("ShopFlavor"))
+local ProgressionConfig = require(Shared:WaitForChild("ProgressionConfig"))
 
 local remotes = ReplicatedStorage:WaitForChild("TinyRepairShopRemotes")
 local stateChanged = remotes:WaitForChild("StateChanged") :: RemoteEvent
@@ -70,7 +71,7 @@ end
 
 local statsFrame = Instance.new("Frame")
 statsFrame.Name = "Stats"
-statsFrame.Size = UDim2.fromOffset(292, 144)
+statsFrame.Size = UDim2.fromOffset(292, 194)
 statsFrame.Position = UDim2.fromOffset(16, 16)
 statsFrame.BackgroundColor3 = Color3.fromRGB(37, 43, 40)
 statsFrame.BackgroundTransparency = 0.08
@@ -85,6 +86,8 @@ local reputationLabel = makeText(statsFrame, Localization.text("Reputation", loc
 local toolLevelLabel = makeText(statsFrame, Localization.text("ToolLevel", localeCode) .. ": 0", UDim2.new(0.55, -8, 0, 22), UDim2.fromOffset(12, 65), 14, true)
 local streakLabel = makeText(statsFrame, "🔥 " .. Localization.text("Streak", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 89), 14, true)
 local oddJobsLabel = makeText(statsFrame, "◈ " .. Localization.text("OddJobs", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 113), 14, true)
+local shiftLabel = makeText(statsFrame, "🧾 " .. Localization.text("Shift", localeCode) .. " 1  •  0/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT), UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 137), 14, true)
+local shopLabel = makeText(statsFrame, "🏪 " .. Localization.text("ShopLevel", localeCode) .. " Lv.0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 161), 14, true)
 
 local jobFrame = Instance.new("Frame")
 jobFrame.Name = "JobCard"
