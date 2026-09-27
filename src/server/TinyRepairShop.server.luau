@@ -718,7 +718,7 @@ local function finishJob(player: Player, state: JobState)
 		repairsValue.Value += 1
 	end
 
-	local shiftSummary = nil
+	local shiftSummary: any? = nil
 	if shiftRepairsValue and shiftPerfectsValue and shiftEarningsValue and shiftQualityValue then
 		shiftRepairsValue.Value += 1
 		shiftEarningsValue.Value += totalReward
