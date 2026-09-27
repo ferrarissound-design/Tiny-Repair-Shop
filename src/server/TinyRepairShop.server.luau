@@ -69,6 +69,7 @@ local stats: { [Player]: {
 	shopLevel: IntValue,
 	shiftsCompleted: IntValue,
 } } = {}
+local savePlayer: (Player) -> ()
 
 local remotes = ReplicatedStorage:FindFirstChild("TinyRepairShopRemotes") :: Folder?
 if not remotes then
@@ -798,6 +799,10 @@ local function finishJob(player: Player, state: JobState)
 	destroyPlayerItem(player)
 	states[player] = nil
 	pushState(player)
+
+	if shiftSummary or newOddityUnlocked then
+		task.spawn(savePlayer, player)
+	end
 end
 
 local function maybeGrantRareFind(player: Player, state: JobState, stepId: string)
@@ -1277,9 +1282,18 @@ local function loadPlayer(player: Player)
 			toastEvent:FireClient(player, "CustomerReady", {})
 		end
 	end)
+
+	task.spawn(function()
+		while player.Parent == Players do
+			task.wait(120)
+			if player.Parent == Players then
+				savePlayer(player)
+			end
+		end
+	end)
 end
 
-local function savePlayer(player: Player)
+savePlayer = function(player: Player)
 	local playerStats = stats[player]
 	if not playerStats then
 		return
@@ -1356,6 +1370,7 @@ shopUpgradePrompt.Triggered:Connect(function(player: Player)
 		level = shopLevel.Value,
 		cost = cost,
 	})
+	task.spawn(savePlayer, player)
 end)
 
 toolUpgradePrompt.Triggered:Connect(function(player: Player)
@@ -1382,6 +1397,7 @@ toolUpgradePrompt.Triggered:Connect(function(player: Player)
 		level = toolLevel.Value,
 		cost = cost,
 	})
+	task.spawn(savePlayer, player)
 end)
 
 skillCheckSubmit.OnServerEvent:Connect(function(player: Player)
