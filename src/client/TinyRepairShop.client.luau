@@ -1188,6 +1188,22 @@ local function bindProgress()
 
 	local function refreshShop()
 		refreshWorkshopDecor(shopLevel.Value)
+		local renovationBoard = runtimeFolder:FindFirstChild("RenovationBoard")
+		local prompt = if renovationBoard then renovationBoard:FindFirstChild("UpgradeShop") else nil
+		if prompt and prompt:IsA("ProximityPrompt") then
+			if shopLevel.Value >= #ProgressionConfig.ShopUpgradeCosts then
+				prompt.ActionText = if localeCode == "ja" then "改装済み" else "Fully upgraded"
+				prompt.ObjectText = if localeCode == "ja" then "工房 MAX" else "Workshop MAX"
+				prompt.Enabled = false
+			else
+				local nextLevel = shopLevel.Value + 1
+				local cost = ProgressionConfig.ShopUpgradeCosts[nextLevel]
+				prompt.ActionText = if localeCode == "ja" then "工房を改装" else "Improve workshop"
+				prompt.ObjectText = Localization.pick(ProgressionConfig.ShopLevelNames[nextLevel + 1], localeCode)
+					.. "  •  $" .. tostring(cost)
+				prompt.Enabled = true
+			end
+		end
 		refresh()
 	end
 
