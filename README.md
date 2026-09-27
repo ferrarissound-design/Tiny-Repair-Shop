@@ -16,6 +16,9 @@ A cozy Roblox repair-shop game built in **Luau** and managed with **Rojo**.
 10. Reputation unlocks more complicated devices.
 11. Spend cash at the Tool Cabinet to permanently upgrade your tools.
 12. Better tools widen timing windows, making precise repairs more forgiving.
+13. Every 5 completed repairs closes a shift and awards a performance bonus.
+14. Spend larger amounts of cash on workshop renovations that visibly improve the shop.
+15. Repeat customers remember prior repairs and unlock new story lines as trust grows.
 
 Current repair families:
 
@@ -40,6 +43,10 @@ At Reputation 5+, a live-server offer board has an 8% chance to contain one **Od
 - Server-validated customer offer selection with up to three unlocked jobs at once.
 - Six customer personalities and weighted special-order modifiers.
 - Perfect-repair streaks that add a capped cash bonus for consistent zero-mistake work.
+- Five-repair shifts with quality/perfect-work scoring and a cash completion bonus.
+- Three persistent workshop renovation levels with local visual upgrades and stronger shift bonuses.
+- Six repeat-customer relationship arcs with four story tiers each.
+- First-repair world highlighting so new players can find the customer and workbench without a tutorial wall of text.
 - Rare Odd Jobs with persistent completion tracking and cached offer rolls.
 - Repair prompts use Roblox \`ProximityPrompt\`.
 - Timing minigame uses a large touch-friendly button.
@@ -105,6 +112,14 @@ Perfect repairs receive the highest quality bonus. One mistake still gets a smal
 
 Zero-mistake repairs also build a session perfect streak. Each level adds a small cash bonus, capped so the streak feels valuable without overpowering job choice. Special orders can add their own perfect-work premium.
 
+### Shifts and workshop growth
+
+A shift is **5 completed repairs**. During a shift the HUD tracks repairs and perfect work, while the local lighting moves from evening toward night. At the end, players receive a summary with repair earnings, average quality, perfect repairs, and a cash bonus.
+
+Workshop renovations cost **$600 / $1,600 / $3,500**. Each level adds visible local decoration so multiplayer players can keep their own progression, and each level adds 10% to the calculated shift-completion bonus.
+
+Customer visits are saved per customer. Relationship tiers advance at repeat-visit milestones and change the short story line shown when that customer returns.
+
 ### Tool upgrades
 
 The Tool Cabinet provides a persistent cash sink:
@@ -115,13 +130,16 @@ The Tool Cabinet provides a persistent cash sink:
 
 Each level slightly widens skill-check success zones. This makes money useful beyond being a scoreboard number and gives the workshop a light long-term progression loop.
 
-## Good next steps
+## Current milestone: playable vertical slice (~70%)
 
-- Workshop upgrades and decoration
-- Repeat-customer story arcs
-- Physical tool animations and sound feedback
-- Repair collection shelf
-- Odd Job follow-up story arcs
-- More Curiosities shelf entries and ambient behaviors as new oddities are added
-- Workshop upgrades and visible trophies
-- Multiplayer workbench roles
+The project now has a complete repeatable loop, short-session structure, persistent progression, collection goals, customer continuity, rare content, mobile-first UI, and server-authoritative rewards. The remaining work is mostly production polish rather than proving the core game.
+
+### Remaining production work
+
+- Replace more primitive-generated props with stronger Roblox art direction.
+- Add physical tool animations, repair sound design, and customer animation.
+- Expand normal repair families and Odd Job story chains after playtest data.
+- Balance payouts, upgrade costs, rarity, and shift bonuses from real session data.
+- Add accessibility/settings options for timing difficulty and visual intensity.
+- Add analytics hooks and retention funnels before monetization decisions.
+- Add deeper multiplayer roles only if playtests show cooperative repair is worth the complexity.
