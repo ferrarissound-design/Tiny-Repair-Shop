@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalizationService = game:GetService("LocalizationService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -1168,6 +1169,12 @@ local function bindProgress()
 		shiftLabel.Text = "🧾 " .. Localization.text("Shift", localeCode) .. " " .. tostring(shiftNumber)
 			.. "  •  " .. tostring(shiftRepairs.Value) .. "/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT)
 			.. "  •  ★" .. tostring(shiftPerfects.Value)
+
+		local shiftFraction = math.clamp(shiftRepairs.Value / ProgressionConfig.REPAIRS_PER_SHIFT, 0, 1)
+		Lighting.ClockTime = 17.7 + shiftFraction * 3.6
+		Lighting.Brightness = 2.0 - shiftFraction * 0.25
+		Lighting.Ambient = Color3.fromRGB(110, 105, 100):Lerp(Color3.fromRGB(70, 74, 88), shiftFraction)
+		Lighting.OutdoorAmbient = Color3.fromRGB(95, 100, 110):Lerp(Color3.fromRGB(55, 61, 78), shiftFraction)
 
 		local levelIndex = math.clamp(shopLevel.Value + 1, 1, #ProgressionConfig.ShopLevelNames)
 		shopLabel.Text = "🏪 " .. Localization.pick(ProgressionConfig.ShopLevelNames[levelIndex], localeCode)
