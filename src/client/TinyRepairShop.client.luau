@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalizationService = game:GetService("LocalizationService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -16,6 +17,7 @@ local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
 local Localization = require(Shared:WaitForChild("Localization"))
 local ShopFlavor = require(Shared:WaitForChild("ShopFlavor"))
+local ProgressionConfig = require(Shared:WaitForChild("ProgressionConfig"))
 
 local remotes = ReplicatedStorage:WaitForChild("TinyRepairShopRemotes")
 local stateChanged = remotes:WaitForChild("StateChanged") :: RemoteEvent
@@ -70,7 +72,7 @@ end
 
 local statsFrame = Instance.new("Frame")
 statsFrame.Name = "Stats"
-statsFrame.Size = UDim2.fromOffset(292, 144)
+statsFrame.Size = UDim2.fromOffset(292, 166)
 statsFrame.Position = UDim2.fromOffset(16, 16)
 statsFrame.BackgroundColor3 = Color3.fromRGB(37, 43, 40)
 statsFrame.BackgroundTransparency = 0.08
@@ -83,8 +85,10 @@ makeText(statsFrame, "🔧 " .. Localization.text("Title", localeCode), UDim2.ne
 local moneyLabel = makeText(statsFrame, Localization.text("Money", localeCode) .. ": $0", UDim2.new(0.55, -8, 0, 24), UDim2.fromOffset(12, 39), 15, true)
 local reputationLabel = makeText(statsFrame, Localization.text("Reputation", localeCode) .. ": 0", UDim2.new(0.45, -8, 0, 24), UDim2.new(0.55, 0, 0, 39), 15, true)
 local toolLevelLabel = makeText(statsFrame, Localization.text("ToolLevel", localeCode) .. ": 0", UDim2.new(0.55, -8, 0, 22), UDim2.fromOffset(12, 65), 14, true)
+local oddJobsLabel = makeText(statsFrame, "◈ " .. Localization.text("OddJobs", localeCode) .. ": 0", UDim2.new(0.45, -8, 0, 22), UDim2.new(0.55, 0, 0, 65), 14, true)
 local streakLabel = makeText(statsFrame, "🔥 " .. Localization.text("Streak", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 89), 14, true)
-local oddJobsLabel = makeText(statsFrame, "◈ " .. Localization.text("OddJobs", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 113), 14, true)
+local shiftLabel = makeText(statsFrame, "🧾 " .. Localization.text("Shift", localeCode) .. " 1  •  0/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT), UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 113), 14, true)
+local shopLabel = makeText(statsFrame, "🏪 " .. Localization.text("ShopLevel", localeCode) .. " Lv.0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 137), 14, true)
 
 local jobFrame = Instance.new("Frame")
 jobFrame.Name = "JobCard"
@@ -128,6 +132,102 @@ local toastText = makeText(toastFrame, "", UDim2.new(1, -24, 1, -12), UDim2.from
 toastText.TextXAlignment = Enum.TextXAlignment.Center
 toastText.TextYAlignment = Enum.TextYAlignment.Center
 
+local storyFrame = Instance.new("Frame")
+storyFrame.Name = "CustomerStory"
+storyFrame.AnchorPoint = Vector2.new(0.5, 1)
+storyFrame.Size = UDim2.new(0.86, 0, 0, 82)
+storyFrame.Position = UDim2.new(0.5, 0, 1, -250)
+storyFrame.BackgroundColor3 = Color3.fromRGB(50, 55, 52)
+storyFrame.BackgroundTransparency = 0.04
+storyFrame.Visible = false
+storyFrame.Parent = gui
+round(storyFrame, 16)
+addStroke(storyFrame, 0.78)
+
+local storyConstraint = Instance.new("UISizeConstraint")
+storyConstraint.MaxSize = Vector2.new(540, 90)
+storyConstraint.MinSize = Vector2.new(290, 76)
+storyConstraint.Parent = storyFrame
+
+local storyName = makeText(storyFrame, "", UDim2.new(1, -24, 0, 24), UDim2.fromOffset(12, 8), 15, true)
+local storyText = makeText(storyFrame, "", UDim2.new(1, -24, 0, 42), UDim2.fromOffset(12, 32), 14, false)
+
+local storySequence = 0
+local function showCustomerStory(customerId: string, tier: number)
+	local customer = ShopFlavor.getCustomer(customerId)
+	local story = ShopFlavor.getCustomerStory(customerId, tier)
+	if not customer or not story then
+		return
+	end
+	storySequence += 1
+	local sequence = storySequence
+	storyName.Text = "👤 " .. Localization.pick(customer.name, localeCode)
+	storyText.Text = Localization.pick(story, localeCode)
+	storyFrame.Visible = true
+	storyFrame.BackgroundTransparency = 0.04
+	task.delay(4.2, function()
+		if sequence == storySequence then
+			storyFrame.Visible = false
+		end
+	end)
+end
+
+local shiftFrame = Instance.new("Frame")
+shiftFrame.Name = "ShiftSummary"
+shiftFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+shiftFrame.Size = UDim2.new(0.88, 0, 0, 272)
+shiftFrame.Position = UDim2.fromScale(0.5, 0.5)
+shiftFrame.BackgroundColor3 = Color3.fromRGB(35, 42, 38)
+shiftFrame.BackgroundTransparency = 0.02
+shiftFrame.Visible = false
+shiftFrame.Parent = gui
+round(shiftFrame, 20)
+addStroke(shiftFrame, 0.68)
+
+local shiftConstraint = Instance.new("UISizeConstraint")
+shiftConstraint.MaxSize = Vector2.new(470, 285)
+shiftConstraint.MinSize = Vector2.new(300, 250)
+shiftConstraint.Parent = shiftFrame
+
+local shiftTitle = makeText(shiftFrame, "🧾 " .. Localization.text("ShiftComplete", localeCode), UDim2.new(1, -28, 0, 34), UDim2.fromOffset(14, 14), 22, true)
+shiftTitle.TextXAlignment = Enum.TextXAlignment.Center
+local shiftBody = makeText(shiftFrame, "", UDim2.new(1, -32, 0, 140), UDim2.fromOffset(16, 58), 16, false)
+shiftBody.TextYAlignment = Enum.TextYAlignment.Top
+
+local nextShiftButton = Instance.new("TextButton")
+nextShiftButton.Name = "NextShift"
+nextShiftButton.AnchorPoint = Vector2.new(0.5, 1)
+nextShiftButton.Size = UDim2.new(0.72, 0, 0, 52)
+nextShiftButton.Position = UDim2.new(0.5, 0, 1, -16)
+nextShiftButton.BackgroundColor3 = Color3.fromRGB(78, 116, 93)
+nextShiftButton.Text = Localization.text("NextShift", localeCode)
+nextShiftButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+nextShiftButton.Font = Enum.Font.GothamBold
+nextShiftButton.TextSize = 17
+nextShiftButton.Parent = shiftFrame
+round(nextShiftButton, 13)
+
+nextShiftButton.Activated:Connect(function()
+	shiftFrame.Visible = false
+end)
+
+local function showShiftSummary(data: any)
+	if type(data) ~= "table" then
+		return
+	end
+	local shiftNumber = if type(data.shiftNumber) == "number" then math.floor(data.shiftNumber) else 1
+	local averageQuality = if type(data.averageQuality) == "number" then math.floor(data.averageQuality) else 0
+	local perfectRepairs = if type(data.perfectRepairs) == "number" then math.floor(data.perfectRepairs) else 0
+	local earnings = if type(data.earnings) == "number" then math.floor(data.earnings) else 0
+	local bonus = if type(data.bonus) == "number" then math.floor(data.bonus) else 0
+	shiftTitle.Text = "🧾 " .. Localization.text("ShiftComplete", localeCode) .. "  #" .. tostring(shiftNumber)
+	shiftBody.Text = Localization.text("ShiftEarnings", localeCode) .. ": $" .. tostring(earnings)
+		.. "\n" .. Localization.text("ShiftQuality", localeCode) .. ": " .. tostring(averageQuality) .. "%"
+		.. "\n" .. Localization.text("ShiftPerfects", localeCode) .. ": " .. tostring(perfectRepairs) .. "/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT)
+		.. "\n\n" .. Localization.text("ShiftBonus", localeCode) .. ": +$" .. tostring(bonus)
+	shiftFrame.Visible = true
+end
+
 local toastSequence = 0
 
 local function showToast(key: string, data: any?)
@@ -158,6 +258,21 @@ local function showToast(key: string, data: any?)
 		message ..= "  Lv." .. tostring(math.floor(data.level))
 	elseif key == "UpgradeNeedCash" and data and type(data.cost) == "number" then
 		message ..= "  $" .. tostring(math.floor(data.cost))
+	elseif key == "ShopUpgraded" and data and type(data.level) == "number" then
+		message ..= "  Lv." .. tostring(math.floor(data.level))
+	elseif key == "ShopUpgradeNeedCash" and data and type(data.cost) == "number" then
+		message ..= "  $" .. tostring(math.floor(data.cost))
+	elseif key == "NewRepairUnlocked" and data and type(data.jobId) == "string" then
+		local unlockedJob = RepairCatalog.getJob(data.jobId)
+		if unlockedJob then
+			message ..= "  " .. Localization.pick(unlockedJob.name, localeCode)
+		end
+	end
+
+	if (key == "JobAccepted" or key == "OddityAccepted") and data
+		and type(data.customerId) == "string"
+		and type(data.relationshipTier) == "number" then
+		showCustomerStory(data.customerId, data.relationshipTier)
 	end
 
 	toastText.Text = message
@@ -169,6 +284,46 @@ local function showToast(key: string, data: any?)
 		end
 		TweenService:Create(toastFrame, TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, -80) }):Play()
 	end)
+end
+
+local repairsProgress: IntValue? = nil
+local currentJobState: any? = nil
+local tutorialHighlight: Highlight? = nil
+
+local function refreshTutorialHighlight(state: any?)
+	if tutorialHighlight then
+		tutorialHighlight:Destroy()
+		tutorialHighlight = nil
+	end
+	if not repairsProgress or repairsProgress.Value > 0 then
+		return
+	end
+
+	local runtimeFolder = workspace:FindFirstChild("TinyRepairShopRuntime")
+	if not runtimeFolder then
+		return
+	end
+
+	local target: Instance? = nil
+	if state then
+		target = runtimeFolder:FindFirstChild("WorkbenchTop")
+	else
+		target = runtimeFolder:FindFirstChild("Customer")
+	end
+	if not target then
+		return
+	end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "FirstRepairGuide"
+	highlight.Adornee = target
+	highlight.FillColor = Color3.fromRGB(246, 211, 112)
+	highlight.FillTransparency = 0.72
+	highlight.OutlineColor = Color3.fromRGB(255, 239, 171)
+	highlight.OutlineTransparency = 0.08
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Parent = target
+	tutorialHighlight = highlight
 end
 
 local function renderJob(state: any?)
@@ -256,6 +411,130 @@ local function collectionPart(
 	end
 	part.Parent = parent
 	return part
+end
+
+local function addDecorText(part: BasePart, text: string, face: Enum.NormalId, textColor: Color3)
+	local surface = Instance.new("SurfaceGui")
+	surface.Face = face
+	surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	surface.PixelsPerStud = 42
+	surface.Parent = part
+
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBold
+	label.Text = text
+	label.TextColor3 = textColor
+	label.TextScaled = true
+	label.Parent = surface
+end
+
+local function refreshWorkshopDecor(shopLevel: number)
+	local runtimeFolder = workspace:FindFirstChild("TinyRepairShopRuntime")
+	if not runtimeFolder then
+		return
+	end
+
+	local old = runtimeFolder:FindFirstChild("LocalWorkshopDecor")
+	if old then
+		old:Destroy()
+	end
+
+	local decor = Instance.new("Folder")
+	decor.Name = "LocalWorkshopDecor"
+	decor.Parent = runtimeFolder
+
+	if shopLevel >= 1 then
+		local rug = collectionPart(
+			decor,
+			"WelcomeRug",
+			Vector3.new(6.5, 0.08, 3.2),
+			CFrame.new(7.5, 0.56, -6.0),
+			Color3.fromRGB(100, 66, 54)
+		)
+		rug.Material = Enum.Material.Fabric
+
+		local pot = collectionPart(decor, "PlantPot", Vector3.new(1.25, 1.1, 1.25), CFrame.new(14.7, 1.05, -7.7), Color3.fromRGB(132, 87, 58))
+		pot.Material = Enum.Material.SmoothPlastic
+		local stem = collectionPart(decor, "PlantStem", Vector3.new(0.3, 1.9, 0.3), CFrame.new(14.7, 2.35, -7.7), Color3.fromRGB(75, 109, 66))
+		stem.Material = Enum.Material.SmoothPlastic
+		for index = 0, 3 do
+			local angle = math.rad(index * 90 + 35)
+			collectionPart(
+				decor,
+				"Leaf",
+				Vector3.new(1.25, 0.18, 0.55),
+				CFrame.new(14.7, 2.65, -7.7) * CFrame.Angles(0, angle, math.rad(18)) * CFrame.new(0.55, 0, 0),
+				Color3.fromRGB(82, 132, 75)
+			)
+		end
+	end
+
+	if shopLevel >= 2 then
+		for _, x in { -6.5, 6.5 } do
+			local lamp = collectionPart(
+				decor,
+				"WarmWallLamp",
+				Vector3.new(0.65, 0.9, 0.45),
+				CFrame.new(x, 7.2, 12.8),
+				Color3.fromRGB(229, 193, 126)
+			)
+			lamp.Material = Enum.Material.Neon
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 220, 164)
+			light.Brightness = 1.15
+			light.Range = 13
+			light.Parent = lamp
+		end
+
+		local certificate = collectionPart(
+			decor,
+			"TrustCertificate",
+			Vector3.new(5.2, 3.0, 0.16),
+			CFrame.new(10.2, 7.4, 12.92),
+			Color3.fromRGB(72, 59, 48)
+		)
+		addDecorText(
+			certificate,
+			if localeCode == "ja" then "地域の頼れる修理工房" else "TRUSTED LOCAL REPAIR",
+			Enum.NormalId.Front,
+			Color3.fromRGB(237, 220, 178)
+		)
+	end
+
+	if shopLevel >= 3 then
+		local premiumSign = collectionPart(
+			decor,
+			"MasterSign",
+			Vector3.new(9.2, 1.45, 0.25),
+			CFrame.new(0, 8.0, 12.88),
+			Color3.fromRGB(47, 58, 54)
+		)
+		premiumSign.Material = Enum.Material.Metal
+		addDecorText(
+			premiumSign,
+			if localeCode == "ja" then "MASTER REPAIR WORKS" else "MASTER REPAIR WORKS",
+			Enum.NormalId.Front,
+			Color3.fromRGB(247, 213, 118)
+		)
+
+		for _, x in { -10, 0, 10 } do
+			local ceilingLight = collectionPart(
+				decor,
+				"CeilingGlow",
+				Vector3.new(5.5, 0.15, 0.55),
+				CFrame.new(x, 10.8, 2.5),
+				Color3.fromRGB(255, 238, 187)
+			)
+			ceilingLight.Material = Enum.Material.Neon
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 230, 180)
+			light.Brightness = 0.85
+			light.Range = 14
+			light.Parent = ceilingLight
+		end
+	end
 end
 
 local function addPlaque(parent: Instance, cframe: CFrame, text: string, discovered: boolean)
@@ -687,6 +966,8 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 			local customer = if type(offer.customerId) == "string" then ShopFlavor.getCustomer(offer.customerId) else nil
 			local modifier = if type(offer.modifierId) == "string" then ShopFlavor.getModifier(offer.modifierId) else nil
 			local customerName = if customer then Localization.pick(customer.name, localeCode) else "?"
+			local relationshipTier = if type(offer.relationshipTier) == "number" then math.clamp(math.floor(offer.relationshipTier), 0, 3) else 0
+			local relationshipMark = if relationshipTier > 0 then " " .. string.rep("★", relationshipTier) else ""
 			local isOddity = offer.isOddity == true or job.rareOnly == true
 			local modifierName = Localization.text("SpecialOrder", localeCode)
 			if isOddity then
@@ -697,7 +978,7 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 			if isOddity then
 				button.BackgroundColor3 = Color3.fromRGB(82, 61, 90)
 			end
-			button.Text = "  👤 " .. customerName .. "  •  " .. modifierName
+			button.Text = "  👤 " .. customerName .. relationshipMark .. "  •  " .. modifierName
 				.. "\n  🔧 "
 				.. Localization.pick(job.name, localeCode)
 				.. "\n  "
@@ -877,6 +1158,72 @@ fixButton.Activated:Connect(function()
 	end)
 end)
 
+local function bindProgress()
+	local progress = player:WaitForChild("Progress")
+	local repairs = progress:WaitForChild("Repairs") :: IntValue
+	local shopLevel = progress:WaitForChild("ShopLevel") :: IntValue
+	local shiftsCompleted = progress:WaitForChild("ShiftsCompleted") :: IntValue
+	local shiftRepairs = progress:WaitForChild("ShiftRepairs") :: IntValue
+	local shiftPerfects = progress:WaitForChild("ShiftPerfects") :: IntValue
+	repairsProgress = repairs
+
+	local runtimeFolder = workspace:WaitForChild("TinyRepairShopRuntime")
+
+	local function refresh()
+		local shiftNumber = shiftsCompleted.Value + 1
+		shiftLabel.Text = "🧾 " .. Localization.text("Shift", localeCode) .. " " .. tostring(shiftNumber)
+			.. "  •  " .. tostring(shiftRepairs.Value) .. "/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT)
+			.. "  •  ★" .. tostring(shiftPerfects.Value)
+
+		local shiftFraction = math.clamp(shiftRepairs.Value / ProgressionConfig.REPAIRS_PER_SHIFT, 0, 1)
+		Lighting.ClockTime = 17.7 + shiftFraction * 3.6
+		Lighting.Brightness = 2.0 - shiftFraction * 0.25
+		Lighting.Ambient = Color3.fromRGB(110, 105, 100):Lerp(Color3.fromRGB(70, 74, 88), shiftFraction)
+		Lighting.OutdoorAmbient = Color3.fromRGB(95, 100, 110):Lerp(Color3.fromRGB(55, 61, 78), shiftFraction)
+
+		local levelIndex = math.clamp(shopLevel.Value + 1, 1, #ProgressionConfig.ShopLevelNames)
+		shopLabel.Text = "🏪 " .. Localization.pick(ProgressionConfig.ShopLevelNames[levelIndex], localeCode)
+		refreshTutorialHighlight(currentJobState)
+	end
+
+	local function refreshShop()
+		refreshWorkshopDecor(shopLevel.Value)
+		local renovationBoard = runtimeFolder:FindFirstChild("RenovationBoard")
+		local prompt = if renovationBoard then renovationBoard:FindFirstChild("UpgradeShop") else nil
+		if prompt and prompt:IsA("ProximityPrompt") then
+			if shopLevel.Value >= #ProgressionConfig.ShopUpgradeCosts then
+				prompt.ActionText = if localeCode == "ja" then "改装済み" else "Fully upgraded"
+				prompt.ObjectText = if localeCode == "ja" then "工房 MAX" else "Workshop MAX"
+				prompt.Enabled = false
+			else
+				local nextLevel = shopLevel.Value + 1
+				local cost = ProgressionConfig.ShopUpgradeCosts[nextLevel]
+				prompt.ActionText = if localeCode == "ja" then "工房を改装" else "Improve workshop"
+				prompt.ObjectText = Localization.pick(ProgressionConfig.ShopLevelNames[nextLevel + 1], localeCode)
+					.. "  •  $" .. tostring(cost)
+				prompt.Enabled = true
+			end
+		end
+		refresh()
+	end
+
+	repairs:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shiftsCompleted:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shiftRepairs:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shiftPerfects:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shopLevel:GetPropertyChangedSignal("Value"):Connect(refreshShop)
+
+	runtimeFolder:WaitForChild("WorkbenchTop")
+	refreshShop()
+	if repairs.Value == 0 then
+		task.delay(0.8, function()
+			if gui.Parent and repairs.Value == 0 then
+				showToast("FirstGuide", {})
+			end
+		end)
+	end
+end
+
 local function bindStats()
 	local leaderstats = player:WaitForChild("leaderstats")
 	local cash = leaderstats:WaitForChild("Cash") :: IntValue
@@ -902,19 +1249,30 @@ local function bindStats()
 end
 
 stateChanged.OnClientEvent:Connect(function(state)
+	currentJobState = state
 	renderJob(state)
+	refreshTutorialHighlight(state)
 end)
 
 toastEvent.OnClientEvent:Connect(function(key: string, data)
-	showToast(key, data)
+	if key == "ShiftComplete" then
+		showShiftSummary(data)
+	else
+		showToast(key, data)
+	end
 end)
 
 task.spawn(bindStats)
+task.spawn(bindProgress)
 task.spawn(bindOddityCollection)
 task.spawn(function()
 	while gui.Parent do
 		task.wait(ambientRandom:NextInteger(AMBIENT_MIN_SECONDS, AMBIENT_MAX_SECONDS))
-		if gui.Parent and not offersFrame.Visible and not skillFrame.Visible then
+		if gui.Parent
+			and not offersFrame.Visible
+			and not skillFrame.Visible
+			and not shiftFrame.Visible
+			and not storyFrame.Visible then
 			triggerOddityAmbient()
 		end
 	end
