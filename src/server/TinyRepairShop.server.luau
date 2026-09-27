@@ -169,7 +169,7 @@ local function buildWorkshop()
 		local slot = newPart(
 			"CollectionSlot_" .. tostring(shelfIndex + 1),
 			Vector3.new(5.5, 0.2, 1.4),
-			CFrame.new(-12, shelfY + 0.55, 8),
+			CFrame.new(-12, shelfY + 0.2, 8),
 			Color3.fromRGB(255, 255, 255)
 		)
 		slot.Transparency = 1
