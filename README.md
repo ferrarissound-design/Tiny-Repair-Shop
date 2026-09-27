@@ -30,6 +30,8 @@ Each item has multiple hidden fault paths, so the same device can require a diff
 
 Customer offers now also have personalities and repair modifiers. A normal fan repair can arrive as a rush job, a precious keepsake, or a precision order. Special orders change timing difficulty and payout instead of being cosmetic labels.
 
+At Reputation 5+, a live-server offer board has an 8% chance to contain one **Odd Job**. Roblox Studio uses 35% to make testing practical. Odd Jobs are rare story-flavored repairs with higher payouts, slightly tougher timing, a subtle visual glow, and their own persistent completion counter. Closing and reopening the offer board does not reroll the same set of jobs.
+
 ## Roblox-first design
 
 - Runtime code is **Luau**.
@@ -38,6 +40,7 @@ Customer offers now also have personalities and repair modifiers. A normal fan r
 - Server-validated customer offer selection with up to three unlocked jobs at once.
 - Six customer personalities and weighted special-order modifiers.
 - Perfect-repair streaks that add a capped cash bonus for consistent zero-mistake work.
+- Rare Odd Jobs with persistent completion tracking and cached offer rolls.
 - Repair prompts use Roblox \`ProximityPrompt\`.
 - Timing minigame uses a large touch-friendly button.
 - Server-authoritative repair progress, minigame judging, and rewards.
@@ -72,6 +75,7 @@ src/
   shared/
     Localization.luau
     RepairCatalog.luau
+    ShopFlavor.luau
 \`\`\`
 
 ## Progression
@@ -82,6 +86,16 @@ src/
 - Reputation 9: Game Controller
 - Reputation 13: Alarm Clock
 - Reputation 18: Instant Camera
+
+### Odd Jobs
+
+Odd Jobs never appear in the normal unlocked-job pool. Starting at Reputation 5, the server can replace one offer with a rare repair:
+
+- **Midnight Radio** — a radio that still tunes itself after the batteries are removed.
+- **Laughing Toy Car** — a toy car that rolls toward closed doors and laughs.
+- **Blank Photo Camera** — a camera whose blank photos keep showing an uninvited silhouette.
+
+Odd Jobs use the dedicated Odd Job modifier and increment a persistent `OddJobs` stat when completed.
 
 Perfect repairs receive the highest quality bonus. One mistake still gets a smaller bonus; additional mistakes simply reduce quality.
 
@@ -103,6 +117,7 @@ Each level slightly widens skill-check success zones. This makes money useful be
 - Repeat-customer story arcs
 - Physical tool animations and sound feedback
 - Repair collection shelf
-- Daily/rare jobs and mystery devices
+- Odd Job follow-up story arcs
+- Repair collection shelf for completed oddities
 - Workshop upgrades and visible trophies
 - Multiplayer workbench roles

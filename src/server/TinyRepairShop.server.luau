@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreService = game:GetService("DataStoreService")
 local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
@@ -22,6 +23,7 @@ local TOOL_UPGRADE_COSTS = { 150, 400, 900 }
 local TOOL_SKILL_WIDTH_BONUS = 0.025
 local STREAK_BONUS_PER_LEVEL = 5
 local STREAK_BONUS_CAP = 30
+local ODD_JOB_OFFER_CHANCE = if RunService:IsStudio() then 0.35 else 0.08
 
 local playerStore = DataStoreService:GetDataStore(DATASTORE_NAME)
 local random = Random.new()
@@ -57,7 +59,7 @@ type JobState = {
 
 local states: { [Player]: JobState } = {}
 local offers: { [Player]: { OfferState } } = {}
-local stats: { [Player]: { money: IntValue, reputation: IntValue, toolLevel: IntValue } } = {}
+local stats: { [Player]: { money: IntValue, reputation: IntValue, toolLevel: IntValue, oddJobs: IntValue } } = {}
 
 local remotes = ReplicatedStorage:FindFirstChild("TinyRepairShopRemotes") :: Folder?
 if not remotes then
@@ -395,6 +397,22 @@ local function buildRepairItem(jobId: string, player: Player): (Model?, BasePart
 	end
 
 	model.PrimaryPart = primary
+	if job.rareOnly then
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "OddityGlow"
+		highlight.FillColor = Color3.fromRGB(122, 92, 145)
+		highlight.FillTransparency = 0.82
+		highlight.OutlineColor = Color3.fromRGB(205, 176, 230)
+		highlight.OutlineTransparency = 0.35
+		highlight.Parent = model
+
+		local light = Instance.new("PointLight")
+		light.Name = "OddityLight"
+		light.Color = Color3.fromRGB(178, 142, 205)
+		light.Brightness = 0.55
+		light.Range = 7
+		light.Parent = primary
+	end
 	-- Four stable workbench positions reduce overlap in small multiplayer sessions.
 	local slot = player.UserId % 4
 	local xOffset = if slot % 2 == 0 then -3 else 3
@@ -535,7 +553,13 @@ local function finishJob(player: Player, state: JobState)
 		reputationValue.Value += job.reputationReward
 	end
 
-	toastEvent:FireClient(player, "RepairComplete", {
+	local oddJobsValue = getStatValue(player, "OddJobs")
+	if job.rareOnly and oddJobsValue then
+		oddJobsValue.Value += 1
+	end
+
+	local completionKey = if job.rareOnly then "OddityComplete" else "RepairComplete"
+	toastEvent:FireClient(player, completionKey, {
 		reward = totalReward,
 		quality = repairQuality(state.mistakes),
 		qualityBonus = qualityBonus,
@@ -543,6 +567,7 @@ local function finishJob(player: Player, state: JobState)
 		streakBonus = streakBonus,
 		streak = if streakValue then streakValue.Value else 0,
 		modifierId = state.modifierId,
+		oddJobs = if oddJobsValue then oddJobsValue.Value else 0,
 	})
 
 	destroyPlayerItem(player)
@@ -761,7 +786,8 @@ local function startJob(player: Player, jobId: string, faultId: string, customer
 	states[player] = state
 	connectRepairPrompt(player, state, primary)
 	pushState(player)
-	toastEvent:FireClient(player, "JobAccepted", {
+	local acceptedKey = if job.rareOnly then "OddityAccepted" else "JobAccepted"
+	toastEvent:FireClient(player, acceptedKey, {
 		customerId = customer.id,
 		modifierId = modifier.id,
 	})
@@ -781,9 +807,38 @@ local function shuffledJobs(jobs)
 	return result
 end
 
+local function buildOfferPayload(playerOffers: { OfferState })
+	local payload = {}
+	for _, offer in playerOffers do
+		local job = RepairCatalog.getJob(offer.jobId)
+		if job then
+			local fault = RepairCatalog.getFault(job, offer.faultId)
+			local modifier = ShopFlavor.getModifier(offer.modifierId)
+			if fault and modifier then
+				table.insert(payload, {
+					jobId = job.id,
+					customerId = offer.customerId,
+					modifierId = offer.modifierId,
+					baseReward = job.baseReward,
+					reputationReward = job.reputationReward,
+					quotedReward = math.floor((job.baseReward + fault.rewardBonus) * modifier.rewardMultiplier + 0.5),
+					isOddity = job.rareOnly == true,
+				})
+			end
+		end
+	end
+	return payload
+end
+
 local function presentOffers(player: Player)
 	if states[player] then
 		toastEvent:FireClient(player, "AlreadyWorking", {})
+		return
+	end
+
+	local cachedOffers = offers[player]
+	if cachedOffers then
+		jobOffersOpened:FireClient(player, buildOfferPayload(cachedOffers))
 		return
 	end
 
@@ -797,32 +852,40 @@ local function presentOffers(player: Player)
 	local shuffled = shuffledJobs(unlockedJobs)
 	local count = math.min(3, #shuffled)
 	local playerOffers: { OfferState } = {}
-	local payload = {}
 
 	for index = 1, count do
 		local job = shuffled[index]
 		local fault = job.faults[random:NextInteger(1, #job.faults)]
 		local customer = ShopFlavor.pickCustomer(random)
 		local modifier = ShopFlavor.pickModifier(random)
-		local offer: OfferState = {
+		table.insert(playerOffers, {
 			jobId = job.id,
 			faultId = fault.id,
 			customerId = customer.id,
 			modifierId = modifier.id,
-		}
-		table.insert(playerOffers, offer)
-		table.insert(payload, {
-			jobId = job.id,
-			customerId = customer.id,
-			modifierId = modifier.id,
-			baseReward = job.baseReward,
-			reputationReward = job.reputationReward,
-			quotedReward = math.floor((job.baseReward + fault.rewardBonus) * modifier.rewardMultiplier + 0.5),
 		})
 	end
 
+	local oddJobs = RepairCatalog.getUnlockedOddJobs(reputation)
+	local oddityRolled = #oddJobs > 0 and random:NextNumber() <= ODD_JOB_OFFER_CHANCE
+	if oddityRolled and #playerOffers > 0 then
+		local oddJob = oddJobs[random:NextInteger(1, #oddJobs)]
+		local oddFault = oddJob.faults[random:NextInteger(1, #oddJob.faults)]
+		local oddCustomers = { "collector_k", "night_courier" }
+		local customerId = oddCustomers[random:NextInteger(1, #oddCustomers)]
+		playerOffers[#playerOffers] = {
+			jobId = oddJob.id,
+			faultId = oddFault.id,
+			customerId = customerId,
+			modifierId = "oddity",
+		}
+	end
+
 	offers[player] = playerOffers
-	jobOffersOpened:FireClient(player, payload)
+	jobOffersOpened:FireClient(player, buildOfferPayload(playerOffers))
+	if oddityRolled then
+		toastEvent:FireClient(player, "OddityArrived", {})
+	end
 end
 
 local function loadPlayer(player: Player)
@@ -850,7 +913,12 @@ local function loadPlayer(player: Player)
 	streak.Value = 0
 	streak.Parent = leaderstats
 
-	stats[player] = { money = money, reputation = reputation, toolLevel = toolLevel }
+	local oddJobs = Instance.new("IntValue")
+	oddJobs.Name = "OddJobs"
+	oddJobs.Value = 0
+	oddJobs.Parent = leaderstats
+
+	stats[player] = { money = money, reputation = reputation, toolLevel = toolLevel, oddJobs = oddJobs }
 
 	local success, data = pcall(function()
 		return playerStore:GetAsync(SAVE_KEY_PREFIX .. tostring(player.UserId))
@@ -860,6 +928,7 @@ local function loadPlayer(player: Player)
 		local savedMoney = data.money
 		local savedReputation = data.reputation
 		local savedToolLevel = data.toolLevel
+		local savedOddJobs = data.oddJobs
 		if type(savedMoney) == "number" then
 			money.Value = math.max(0, math.floor(savedMoney))
 		end
@@ -868,6 +937,9 @@ local function loadPlayer(player: Player)
 		end
 		if type(savedToolLevel) == "number" then
 			toolLevel.Value = math.clamp(math.floor(savedToolLevel), 0, #TOOL_UPGRADE_COSTS)
+		end
+		if type(savedOddJobs) == "number" then
+			oddJobs.Value = math.max(0, math.floor(savedOddJobs))
 		end
 	end
 
@@ -889,6 +961,7 @@ local function savePlayer(player: Player)
 		money = playerStats.money.Value,
 		reputation = playerStats.reputation.Value,
 		toolLevel = playerStats.toolLevel.Value,
+		oddJobs = playerStats.oddJobs.Value,
 	}
 
 	pcall(function()

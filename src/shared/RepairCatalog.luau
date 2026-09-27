@@ -34,6 +34,8 @@ export type JobDefinition = {
 	baseReward: number,
 	reputationReward: number,
 	minReputation: number,
+	rareOnly: boolean?,
+	specialTag: LocalizedText?,
 	faults: { FaultDefinition },
 }
 
@@ -311,6 +313,95 @@ RepairCatalog.Jobs = {
 			},
 		},
 	},
+	{
+		id = "midnight_radio",
+		name = { en = "Midnight Radio", ja = "真夜中のラジオ" },
+		symptom = {
+			en = "At 3:13 AM it tunes itself. The owner removed the batteries. It kept playing.",
+			ja = "午前3:13に勝手に選局。電池を抜いても鳴り続けたそうです。",
+		},
+		modelKind = "Radio",
+		baseReward = 180,
+		reputationReward = 4,
+		minReputation = 5,
+		rareOnly = true,
+		specialTag = { en = "ODD JOB", ja = "怪しい依頼" },
+		faults = {
+			{
+				id = "phantom_tuner",
+				label = { en = "Tuner contact looping the scan circuit", ja = "選局回路をループさせる接点不良" },
+				rewardBonus = 60,
+				steps = {
+					step("inspect", "Inspect", "Listen for the impossible station", "ありえない放送を確認する"),
+					action("open_case", "Unscrew", "Open the radio case", "ラジオのケースを開ける", true, 0.18, 1.08),
+					action("clean_tuner", "Clean", "Clean the tuner contacts", "選局接点を清掃する", nil, 0.16, 1.18),
+					action("isolate_loop", "Repair", "Isolate the looping scan contact", "ループしている接点を修正する", nil, 0.14, 1.26),
+					action("close_case", "Assemble", "Close the case", "ケースを閉じる", nil, 0.16, 1.20),
+					step("test", "Test", "Leave it silent for ten seconds", "10秒間、沈黙するか確認する"),
+				},
+			},
+		},
+	},
+	{
+		id = "laughing_toy_car",
+		name = { en = "Laughing Toy Car", ja = "笑うおもちゃの車" },
+		symptom = {
+			en = "It rolls to closed doors and laughs. The owner says it never had a speaker.",
+			ja = "閉じたドアへ勝手に走って笑う。持ち主いわく、スピーカーは無かったそうです。",
+		},
+		modelKind = "ToyCar",
+		baseReward = 205,
+		reputationReward = 4,
+		minReputation = 9,
+		rareOnly = true,
+		specialTag = { en = "ODD JOB", ja = "怪しい依頼" },
+		faults = {
+			{
+				id = "hidden_sound_board",
+				label = { en = "Hidden sound board wired into the motor trigger", ja = "モーター連動の隠し音声基板" },
+				rewardBonus = 70,
+				steps = {
+					step("inspect", "Inspect", "Inspect the toy without turning your back on it", "背を向けずに、おもちゃを点検する"),
+					action("open_chassis", "Unscrew", "Open the chassis", "シャーシを開ける", true, 0.17, 1.14),
+					action("trace_wire", "Check", "Trace the extra wire", "見覚えのない配線をたどる", nil, 0.15, 1.22),
+					action("disconnect_board", "Repair", "Disconnect the hidden sound board", "隠し音声基板を切り離す", nil, 0.13, 1.30),
+					action("align_axle", "Adjust", "Realign the steering axle", "操舵車軸を調整する", nil, 0.14, 1.26),
+					action("close_chassis", "Assemble", "Close the chassis", "シャーシを閉じる", nil, 0.15, 1.24),
+					step("test", "Test", "Point it away from the door and test it", "ドアと反対へ向けて走行テストする"),
+				},
+			},
+		},
+	},
+	{
+		id = "blank_photo_camera",
+		name = { en = "Blank Photo Camera", ja = "空白を写すカメラ" },
+		symptom = {
+			en = "Photos come out blank, except for a dark figure nobody remembers seeing.",
+			ja = "写真は真っ白なのに、誰も見ていない黒い人影だけが残るそうです。",
+		},
+		modelKind = "Camera",
+		baseReward = 245,
+		reputationReward = 5,
+		minReputation = 18,
+		rareOnly = true,
+		specialTag = { en = "ODD JOB", ja = "怪しい依頼" },
+		faults = {
+			{
+				id = "light_leak_shadow",
+				label = { en = "Severe film-door light leak and dirty roller edge", ja = "フィルム扉の光漏れとローラー端の汚れ" },
+				rewardBonus = 90,
+				steps = {
+					step("inspect", "Inspect", "Inspect the last impossible photo", "最後の妙な写真を確認する"),
+					action("open_camera", "Unscrew", "Open the film door assembly", "フィルム扉まわりを開ける", true, 0.15, 1.20),
+					action("clean_rollers", "Clean", "Clean the roller edges", "ローラー端を清掃する", nil, 0.14, 1.28),
+					action("replace_seal", "Replace", "Replace the damaged light seal", "傷んだ遮光材を交換する", nil, 0.12, 1.34),
+					action("align_door", "Adjust", "Align the film door pressure", "フィルム扉の圧を調整する", nil, 0.12, 1.36),
+					action("close_camera", "Assemble", "Close the camera", "カメラを閉じる", nil, 0.14, 1.30),
+					step("test", "Test", "Take one photo of the empty workbench", "誰もいない作業台を1枚撮る"),
+				},
+			},
+		},
+	},
 } :: { JobDefinition }
 
 function RepairCatalog.getJob(jobId: string): JobDefinition?
@@ -334,7 +425,17 @@ end
 function RepairCatalog.getUnlockedJobs(reputation: number): { JobDefinition }
 	local unlocked = {}
 	for _, job in RepairCatalog.Jobs do
-		if reputation >= job.minReputation then
+		if not job.rareOnly and reputation >= job.minReputation then
+			table.insert(unlocked, job)
+		end
+	end
+	return unlocked
+end
+
+function RepairCatalog.getUnlockedOddJobs(reputation: number): { JobDefinition }
+	local unlocked = {}
+	for _, job in RepairCatalog.Jobs do
+		if job.rareOnly and reputation >= job.minReputation then
 			table.insert(unlocked, job)
 		end
 	end
