@@ -280,6 +280,46 @@ local function showToast(key: string, data: any?)
 	end)
 end
 
+local repairsProgress: IntValue? = nil
+local currentJobState: any? = nil
+local tutorialHighlight: Highlight? = nil
+
+local function refreshTutorialHighlight(state: any?)
+	if tutorialHighlight then
+		tutorialHighlight:Destroy()
+		tutorialHighlight = nil
+	end
+	if not repairsProgress or repairsProgress.Value > 0 then
+		return
+	end
+
+	local runtimeFolder = workspace:FindFirstChild("TinyRepairShopRuntime")
+	if not runtimeFolder then
+		return
+	end
+
+	local target: Instance? = nil
+	if state then
+		target = runtimeFolder:FindFirstChild("WorkbenchTop")
+	else
+		target = runtimeFolder:FindFirstChild("Customer")
+	end
+	if not target then
+		return
+	end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "FirstRepairGuide"
+	highlight.Adornee = target
+	highlight.FillColor = Color3.fromRGB(246, 211, 112)
+	highlight.FillTransparency = 0.72
+	highlight.OutlineColor = Color3.fromRGB(255, 239, 171)
+	highlight.OutlineTransparency = 0.08
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Parent = target
+	tutorialHighlight = highlight
+end
+
 local function renderJob(state: any?)
 	if not state then
 		jobTitle.Text = Localization.text("NoJobTitle", localeCode)
@@ -920,6 +960,8 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 			local customer = if type(offer.customerId) == "string" then ShopFlavor.getCustomer(offer.customerId) else nil
 			local modifier = if type(offer.modifierId) == "string" then ShopFlavor.getModifier(offer.modifierId) else nil
 			local customerName = if customer then Localization.pick(customer.name, localeCode) else "?"
+			local relationshipTier = if type(offer.relationshipTier) == "number" then math.clamp(math.floor(offer.relationshipTier), 0, 3) else 0
+			local relationshipMark = if relationshipTier > 0 then " " .. string.rep("★", relationshipTier) else ""
 			local isOddity = offer.isOddity == true or job.rareOnly == true
 			local modifierName = Localization.text("SpecialOrder", localeCode)
 			if isOddity then
@@ -930,7 +972,7 @@ jobOffersOpened.OnClientEvent:Connect(function(payload)
 			if isOddity then
 				button.BackgroundColor3 = Color3.fromRGB(82, 61, 90)
 			end
-			button.Text = "  👤 " .. customerName .. "  •  " .. modifierName
+			button.Text = "  👤 " .. customerName .. relationshipMark .. "  •  " .. modifierName
 				.. "\n  🔧 "
 				.. Localization.pick(job.name, localeCode)
 				.. "\n  "
@@ -1110,6 +1152,50 @@ fixButton.Activated:Connect(function()
 	end)
 end)
 
+local function bindProgress()
+	local progress = player:WaitForChild("Progress")
+	local repairs = progress:WaitForChild("Repairs") :: IntValue
+	local shopLevel = progress:WaitForChild("ShopLevel") :: IntValue
+	local shiftsCompleted = progress:WaitForChild("ShiftsCompleted") :: IntValue
+	local shiftRepairs = progress:WaitForChild("ShiftRepairs") :: IntValue
+	local shiftPerfects = progress:WaitForChild("ShiftPerfects") :: IntValue
+	repairsProgress = repairs
+
+	local runtimeFolder = workspace:WaitForChild("TinyRepairShopRuntime")
+
+	local function refresh()
+		local shiftNumber = shiftsCompleted.Value + 1
+		shiftLabel.Text = "🧾 " .. Localization.text("Shift", localeCode) .. " " .. tostring(shiftNumber)
+			.. "  •  " .. tostring(shiftRepairs.Value) .. "/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT)
+			.. "  •  ★" .. tostring(shiftPerfects.Value)
+
+		local levelIndex = math.clamp(shopLevel.Value + 1, 1, #ProgressionConfig.ShopLevelNames)
+		shopLabel.Text = "🏪 " .. Localization.pick(ProgressionConfig.ShopLevelNames[levelIndex], localeCode)
+		refreshTutorialHighlight(currentJobState)
+	end
+
+	local function refreshShop()
+		refreshWorkshopDecor(shopLevel.Value)
+		refresh()
+	end
+
+	repairs:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shiftsCompleted:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shiftRepairs:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shiftPerfects:GetPropertyChangedSignal("Value"):Connect(refresh)
+	shopLevel:GetPropertyChangedSignal("Value"):Connect(refreshShop)
+
+	runtimeFolder:WaitForChild("WorkbenchTop")
+	refreshShop()
+	if repairs.Value == 0 then
+		task.delay(0.8, function()
+			if gui.Parent and repairs.Value == 0 then
+				showToast("FirstGuide", {})
+			end
+		end)
+	end
+end
+
 local function bindStats()
 	local leaderstats = player:WaitForChild("leaderstats")
 	local cash = leaderstats:WaitForChild("Cash") :: IntValue
@@ -1135,14 +1221,21 @@ local function bindStats()
 end
 
 stateChanged.OnClientEvent:Connect(function(state)
+	currentJobState = state
 	renderJob(state)
+	refreshTutorialHighlight(state)
 end)
 
 toastEvent.OnClientEvent:Connect(function(key: string, data)
-	showToast(key, data)
+	if key == "ShiftComplete" then
+		showShiftSummary(data)
+	else
+		showToast(key, data)
+	end
 end)
 
 task.spawn(bindStats)
+task.spawn(bindProgress)
 task.spawn(bindOddityCollection)
 task.spawn(function()
 	while gui.Parent do
