@@ -164,10 +164,28 @@ local function buildWorkshop()
 	addSurfaceText(benchLabel, "WORKBENCH", Enum.NormalId.Front)
 
 	for shelfIndex = 0, 2 do
-		newPart("Shelf_" .. tostring(shelfIndex + 1), Vector3.new(8, 0.3, 2), CFrame.new(-12, 2.2 + shelfIndex * 2.1, 8), Color3.fromRGB(93, 71, 49), Enum.Material.Wood)
+		local shelfY = 2.2 + shelfIndex * 2.1
+		newPart("Shelf_" .. tostring(shelfIndex + 1), Vector3.new(8, 0.3, 2), CFrame.new(-12, shelfY, 8), Color3.fromRGB(93, 71, 49), Enum.Material.Wood)
+		local slot = newPart(
+			"CollectionSlot_" .. tostring(shelfIndex + 1),
+			Vector3.new(5.5, 0.2, 1.4),
+			CFrame.new(-12, shelfY + 0.55, 8),
+			Color3.fromRGB(255, 255, 255)
+		)
+		slot.Transparency = 1
+		slot.CanCollide = false
 	end
 	newPart("ShelfLeft", Vector3.new(0.4, 6.2, 2), CFrame.new(-15.8, 3.8, 8), Color3.fromRGB(74, 58, 44), Enum.Material.Wood)
 	newPart("ShelfRight", Vector3.new(0.4, 6.2, 2), CFrame.new(-8.2, 3.8, 8), Color3.fromRGB(74, 58, 44), Enum.Material.Wood)
+
+	local collectionLabel = newPart(
+		"CollectionShelfLabel",
+		Vector3.new(7.2, 1.2, 0.22),
+		CFrame.new(-12, 8.25, 8.95),
+		Color3.fromRGB(58, 48, 62),
+		Enum.Material.Wood
+	)
+	addSurfaceText(collectionLabel, "CURIOSITIES", Enum.NormalId.Front, Color3.fromRGB(230, 211, 238))
 
 	local toolCabinet = newPart(
 		"ToolCabinet",
@@ -516,6 +534,48 @@ local function qualityBonusFor(mistakes: number): number
 	return 0
 end
 
+local function getOddityCollectionFolder(player: Player): Folder?
+	local folder = player:FindFirstChild("OddityCollection")
+	if folder and folder:IsA("Folder") then
+		return folder
+	end
+	return nil
+end
+
+local function hasOddity(player: Player, jobId: string): boolean
+	local folder = getOddityCollectionFolder(player)
+	return folder ~= nil and folder:FindFirstChild(jobId) ~= nil
+end
+
+local function unlockOddity(player: Player, jobId: string): boolean
+	local folder = getOddityCollectionFolder(player)
+	if not folder or hasOddity(player, jobId) then
+		return false
+	end
+
+	local marker = Instance.new("BoolValue")
+	marker.Name = jobId
+	marker.Value = true
+	marker.Parent = folder
+	return true
+end
+
+local function serializeOddityCollection(player: Player): { string }
+	local result = {}
+	local folder = getOddityCollectionFolder(player)
+	if not folder then
+		return result
+	end
+
+	for _, child in folder:GetChildren() do
+		if child:IsA("BoolValue") and child.Value then
+			table.insert(result, child.Name)
+		end
+	end
+	table.sort(result)
+	return result
+end
+
 local function finishJob(player: Player, state: JobState)
 	local job = RepairCatalog.getJob(state.jobId)
 	if not job then
@@ -554,8 +614,12 @@ local function finishJob(player: Player, state: JobState)
 	end
 
 	local oddJobsValue = getStatValue(player, "OddJobs")
-	if job.rareOnly and oddJobsValue then
-		oddJobsValue.Value += 1
+	local newOddityUnlocked = false
+	if job.rareOnly then
+		if oddJobsValue then
+			oddJobsValue.Value += 1
+		end
+		newOddityUnlocked = unlockOddity(player, job.id)
 	end
 
 	local completionKey = if job.rareOnly then "OddityComplete" else "RepairComplete"
@@ -568,6 +632,8 @@ local function finishJob(player: Player, state: JobState)
 		streak = if streakValue then streakValue.Value else 0,
 		modifierId = state.modifierId,
 		oddJobs = if oddJobsValue then oddJobsValue.Value else 0,
+		newOddityUnlocked = newOddityUnlocked,
+		jobId = job.id,
 	})
 
 	destroyPlayerItem(player)
@@ -893,6 +959,10 @@ local function loadPlayer(player: Player)
 	leaderstats.Name = "leaderstats"
 	leaderstats.Parent = player
 
+	local oddityCollection = Instance.new("Folder")
+	oddityCollection.Name = "OddityCollection"
+	oddityCollection.Parent = player
+
 	local money = Instance.new("IntValue")
 	money.Name = "Cash"
 	money.Value = 0
@@ -929,6 +999,7 @@ local function loadPlayer(player: Player)
 		local savedReputation = data.reputation
 		local savedToolLevel = data.toolLevel
 		local savedOddJobs = data.oddJobs
+		local savedOddCollection = data.oddCollection
 		if type(savedMoney) == "number" then
 			money.Value = math.max(0, math.floor(savedMoney))
 		end
@@ -940,6 +1011,19 @@ local function loadPlayer(player: Player)
 		end
 		if type(savedOddJobs) == "number" then
 			oddJobs.Value = math.max(0, math.floor(savedOddJobs))
+		end
+		if type(savedOddCollection) == "table" then
+			for _, jobId in savedOddCollection do
+				if type(jobId) == "string" then
+					local job = RepairCatalog.getJob(jobId)
+					if job and job.rareOnly and not oddityCollection:FindFirstChild(jobId) then
+						local marker = Instance.new("BoolValue")
+						marker.Name = jobId
+						marker.Value = true
+						marker.Parent = oddityCollection
+					end
+				end
+			end
 		end
 	end
 
@@ -962,6 +1046,7 @@ local function savePlayer(player: Player)
 		reputation = playerStats.reputation.Value,
 		toolLevel = playerStats.toolLevel.Value,
 		oddJobs = playerStats.oddJobs.Value,
+		oddCollection = serializeOddityCollection(player),
 	}
 
 	pcall(function()
