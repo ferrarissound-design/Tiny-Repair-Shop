@@ -229,6 +229,10 @@ local ODDITY_ORDER = {
 	"blank_photo_camera",
 }
 
+local ambientRandom = Random.new()
+local AMBIENT_MIN_SECONDS = if RunService:IsStudio() then 10 else 38
+local AMBIENT_MAX_SECONDS = if RunService:IsStudio() then 20 else 72
+
 local function collectionPart(
 	parent: Instance,
 	name: string,
@@ -377,16 +381,21 @@ local function refreshOddityShelf()
 			local discovered = collection:FindFirstChild(jobId) ~= nil
 			local base = slot.CFrame
 			if discovered then
+				local itemModel = Instance.new("Model")
+				itemModel.Name = "Oddity_" .. jobId
+				itemModel:SetAttribute("JobId", jobId)
+				itemModel.Parent = display
+
 				if job.modelKind == "Radio" then
-					buildMiniRadio(display, base)
+					buildMiniRadio(itemModel, base)
 				elseif job.modelKind == "ToyCar" then
-					buildMiniToyCar(display, base)
+					buildMiniToyCar(itemModel, base)
 				elseif job.modelKind == "Camera" then
-					buildMiniCamera(display, base)
+					buildMiniCamera(itemModel, base)
 				end
 
 				local lightAnchor = collectionPart(
-					display,
+					itemModel,
 					"GlowAnchor",
 					Vector3.new(0.12, 0.12, 0.12),
 					base * CFrame.new(0, 1.0, 0),
@@ -424,6 +433,153 @@ local function bindOddityCollection()
 	collection.ChildAdded:Connect(refreshOddityShelf)
 	collection.ChildRemoved:Connect(refreshOddityShelf)
 	refreshOddityShelf()
+end
+
+local function pulseRadio(model: Model)
+	local dial = model:FindFirstChild("Dial", true)
+	local glow = model:FindFirstChild("ShelfGlow", true)
+	if dial and dial:IsA("BasePart") then
+		local original = dial.CFrame
+		local turn = TweenService:Create(
+			dial,
+			TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ CFrame = original * CFrame.Angles(math.rad(80), 0, 0) }
+		)
+		turn:Play()
+		task.wait(0.3)
+		if dial.Parent then
+			TweenService:Create(
+				dial,
+				TweenInfo.new(0.42, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+				{ CFrame = original }
+			):Play()
+		end
+	end
+
+	if glow and glow:IsA("PointLight") then
+		local oldBrightness = glow.Brightness
+		glow.Brightness = 1.7
+		task.wait(0.12)
+		if glow.Parent then
+			glow.Brightness = 0.08
+			task.wait(0.09)
+		end
+		if glow.Parent then
+			glow.Brightness = 1.1
+			task.wait(0.13)
+		end
+		if glow.Parent then
+			glow.Brightness = oldBrightness
+		end
+	end
+end
+
+local function twitchToyCar(model: Model)
+	local originals: { [BasePart]: CFrame } = {}
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") and descendant.Name ~= "GlowAnchor" then
+			originals[descendant] = descendant.CFrame
+		end
+	end
+
+	for part, original in originals do
+		TweenService:Create(
+			part,
+			TweenInfo.new(0.32, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+			{ CFrame = original * CFrame.new(0.55, 0, 0) }
+		):Play()
+	end
+	task.wait(0.38)
+
+	for part, original in originals do
+		if part.Parent then
+			TweenService:Create(
+				part,
+				TweenInfo.new(0.48, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+				{ CFrame = original }
+			):Play()
+		end
+	end
+end
+
+local function flashCamera(model: Model)
+	local flash = model:FindFirstChild("Flash", true)
+	if not flash or not flash:IsA("BasePart") then
+		return
+	end
+
+	local oldColor = flash.Color
+	local oldMaterial = flash.Material
+	local light = Instance.new("PointLight")
+	light.Name = "CameraFlashBurst"
+	light.Color = Color3.fromRGB(255, 245, 210)
+	light.Brightness = 5
+	light.Range = 12
+	light.Parent = flash
+
+	flash.Color = Color3.fromRGB(255, 248, 216)
+	flash.Material = Enum.Material.Neon
+	task.wait(0.12)
+
+	if flash.Parent then
+		flash.Color = oldColor
+		flash.Material = oldMaterial
+	end
+	light:Destroy()
+
+	task.wait(0.16)
+	if flash.Parent then
+		local second = Instance.new("PointLight")
+		second.Name = "CameraFlashAfterglow"
+		second.Color = Color3.fromRGB(224, 211, 255)
+		second.Brightness = 1.4
+		second.Range = 6
+		second.Parent = flash
+		task.wait(0.08)
+		second:Destroy()
+	end
+end
+
+local function triggerOddityAmbient()
+	local runtimeFolder = workspace:FindFirstChild("TinyRepairShopRuntime")
+	if not runtimeFolder then
+		return
+	end
+
+	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	local shelfAnchor = runtimeFolder:FindFirstChild("CollectionSlot_2")
+	if not root or not root:IsA("BasePart") or not shelfAnchor or not shelfAnchor:IsA("BasePart") then
+		return
+	end
+	if (root.Position - shelfAnchor.Position).Magnitude > 28 then
+		return
+	end
+
+	local display = runtimeFolder:FindFirstChild("LocalOddityDisplay")
+	if not display then
+		return
+	end
+
+	local candidates: { Model } = {}
+	for _, child in display:GetChildren() do
+		if child:IsA("Model") and type(child:GetAttribute("JobId")) == "string" then
+			table.insert(candidates, child)
+		end
+	end
+	if #candidates == 0 then
+		return
+	end
+
+	local model = candidates[ambientRandom:NextInteger(1, #candidates)]
+	local jobId = model:GetAttribute("JobId")
+	if jobId == "midnight_radio" then
+		pulseRadio(model)
+	elseif jobId == "laughing_toy_car" then
+		twitchToyCar(model)
+	elseif jobId == "blank_photo_camera" then
+		flashCamera(model)
+	end
 end
 
 -- Customer job offers. The server decides which jobs are valid; the client only
@@ -755,4 +911,12 @@ end)
 
 task.spawn(bindStats)
 task.spawn(bindOddityCollection)
+task.spawn(function()
+	while gui.Parent do
+		task.wait(ambientRandom:NextInteger(AMBIENT_MIN_SECONDS, AMBIENT_MAX_SECONDS))
+		if gui.Parent and not offersFrame.Visible and not skillFrame.Visible then
+			triggerOddityAmbient()
+		end
+	end
+end)
 renderJob(nil)

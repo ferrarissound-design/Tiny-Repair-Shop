@@ -99,6 +99,8 @@ Odd Jobs use the dedicated Odd Job modifier and increment a persistent `OddJobs`
 
 Each unique Odd Job also unlocks a permanent entry in the player's **Curiosities shelf** at the back of the workshop. Undiscovered slots show `???`; discovered jobs display a miniature of the repaired item and a localized name plaque. The shelf contents are rendered locally, so each player sees their own collection even in multiplayer. Completing all three current oddities adds a collection-complete badge to the shelf.
 
+Discovered curiosities now have rare ambient events while the player is near the shelf: the Midnight Radio's dial turns and its glow pulses, the Laughing Toy Car quietly shifts on the shelf, and the Blank Photo Camera flashes by itself. Live play waits roughly 38–72 seconds between event attempts; Studio uses 10–20 seconds for easier testing. Events are suppressed while the repair-offer picker or timing minigame is open.
+
 Perfect repairs receive the highest quality bonus. One mistake still gets a smaller bonus; additional mistakes simply reduce quality.
 
 Zero-mistake repairs also build a session perfect streak. Each level adds a small cash bonus, capped so the streak feels valuable without overpowering job choice. Special orders can add their own perfect-work premium.
@@ -120,6 +122,6 @@ Each level slightly widens skill-check success zones. This makes money useful be
 - Physical tool animations and sound feedback
 - Repair collection shelf
 - Odd Job follow-up story arcs
-- More Curiosities shelf entries as new oddities are added
+- More Curiosities shelf entries and ambient behaviors as new oddities are added
 - Workshop upgrades and visible trophies
 - Multiplayer workbench roles
