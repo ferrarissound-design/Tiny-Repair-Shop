@@ -72,7 +72,7 @@ end
 
 local statsFrame = Instance.new("Frame")
 statsFrame.Name = "Stats"
-statsFrame.Size = UDim2.fromOffset(292, 194)
+statsFrame.Size = UDim2.fromOffset(292, 166)
 statsFrame.Position = UDim2.fromOffset(16, 16)
 statsFrame.BackgroundColor3 = Color3.fromRGB(37, 43, 40)
 statsFrame.BackgroundTransparency = 0.08
@@ -85,10 +85,10 @@ makeText(statsFrame, "🔧 " .. Localization.text("Title", localeCode), UDim2.ne
 local moneyLabel = makeText(statsFrame, Localization.text("Money", localeCode) .. ": $0", UDim2.new(0.55, -8, 0, 24), UDim2.fromOffset(12, 39), 15, true)
 local reputationLabel = makeText(statsFrame, Localization.text("Reputation", localeCode) .. ": 0", UDim2.new(0.45, -8, 0, 24), UDim2.new(0.55, 0, 0, 39), 15, true)
 local toolLevelLabel = makeText(statsFrame, Localization.text("ToolLevel", localeCode) .. ": 0", UDim2.new(0.55, -8, 0, 22), UDim2.fromOffset(12, 65), 14, true)
+local oddJobsLabel = makeText(statsFrame, "◈ " .. Localization.text("OddJobs", localeCode) .. ": 0", UDim2.new(0.45, -8, 0, 22), UDim2.new(0.55, 0, 0, 65), 14, true)
 local streakLabel = makeText(statsFrame, "🔥 " .. Localization.text("Streak", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 89), 14, true)
-local oddJobsLabel = makeText(statsFrame, "◈ " .. Localization.text("OddJobs", localeCode) .. ": 0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 113), 14, true)
-local shiftLabel = makeText(statsFrame, "🧾 " .. Localization.text("Shift", localeCode) .. " 1  •  0/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT), UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 137), 14, true)
-local shopLabel = makeText(statsFrame, "🏪 " .. Localization.text("ShopLevel", localeCode) .. " Lv.0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 161), 14, true)
+local shiftLabel = makeText(statsFrame, "🧾 " .. Localization.text("Shift", localeCode) .. " 1  •  0/" .. tostring(ProgressionConfig.REPAIRS_PER_SHIFT), UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 113), 14, true)
+local shopLabel = makeText(statsFrame, "🏪 " .. Localization.text("ShopLevel", localeCode) .. " Lv.0", UDim2.new(1, -24, 0, 22), UDim2.fromOffset(12, 137), 14, true)
 
 local jobFrame = Instance.new("Frame")
 jobFrame.Name = "JobCard"
@@ -134,9 +134,9 @@ toastText.TextYAlignment = Enum.TextYAlignment.Center
 
 local storyFrame = Instance.new("Frame")
 storyFrame.Name = "CustomerStory"
-storyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+storyFrame.AnchorPoint = Vector2.new(0.5, 1)
 storyFrame.Size = UDim2.new(0.86, 0, 0, 82)
-storyFrame.Position = UDim2.fromScale(0.5, 0.28)
+storyFrame.Position = UDim2.new(0.5, 0, 1, -250)
 storyFrame.BackgroundColor3 = Color3.fromRGB(50, 55, 52)
 storyFrame.BackgroundTransparency = 0.04
 storyFrame.Visible = false
