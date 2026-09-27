@@ -143,6 +143,9 @@ local function showToast(key: string, data: any?)
 		if type(data.streak) == "number" and data.streak > 0 then
 			message ..= "  •  🔥 x" .. tostring(math.floor(data.streak))
 		end
+		if key == "OddityComplete" and data.newOddityUnlocked == true then
+			message ..= "  •  " .. Localization.text("NewCuriosity", localeCode)
+		end
 	elseif (key == "JobAccepted" or key == "OddityAccepted") and data then
 		local customer = if type(data.customerId) == "string" then ShopFlavor.getCustomer(data.customerId) else nil
 		local modifier = if type(data.modifierId) == "string" then ShopFlavor.getModifier(data.modifierId) else nil
@@ -358,12 +361,20 @@ local function refreshOddityShelf()
 					buildMiniCamera(display, base)
 				end
 
+				local lightAnchor = collectionPart(
+					display,
+					"GlowAnchor",
+					Vector3.new(0.12, 0.12, 0.12),
+					base * CFrame.new(0, 1.0, 0),
+					Color3.fromRGB(173, 137, 196)
+				)
+				lightAnchor.Transparency = 1
 				local glow = Instance.new("PointLight")
 				glow.Name = "ShelfGlow"
 				glow.Color = Color3.fromRGB(173, 137, 196)
 				glow.Brightness = 0.28
 				glow.Range = 4.5
-				glow.Parent = slot
+				glow.Parent = lightAnchor
 
 				addPlaque(
 					display,
