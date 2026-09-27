@@ -346,6 +346,30 @@ local function refreshOddityShelf()
 	display.Name = "LocalOddityDisplay"
 	display.Parent = runtimeFolder
 
+	local discoveredCount = 0
+	for _, jobId in ODDITY_ORDER do
+		if collection:FindFirstChild(jobId) then
+			discoveredCount += 1
+		end
+	end
+
+	if discoveredCount == #ODDITY_ORDER then
+		local crown = collectionPart(
+			display,
+			"CompleteCollectionBadge",
+			Vector3.new(2.1, 0.24, 0.8),
+			CFrame.new(-12, 8.05, 7.65),
+			Color3.fromRGB(190, 155, 71)
+		)
+		crown.Material = Enum.Material.Metal
+		addPlaque(
+			display,
+			CFrame.new(-12, 7.75, 7.55),
+			if localeCode == "ja" then "奇妙な収集 完成" else "COLLECTION COMPLETE",
+			true
+		)
+	end
+
 	for index, jobId in ODDITY_ORDER do
 		local slot = runtimeFolder:FindFirstChild("CollectionSlot_" .. tostring(index))
 		local job = RepairCatalog.getJob(jobId)
