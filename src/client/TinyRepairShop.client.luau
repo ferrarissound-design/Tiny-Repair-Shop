@@ -367,6 +367,130 @@ local function collectionPart(
 	return part
 end
 
+local function addDecorText(part: BasePart, text: string, face: Enum.NormalId, textColor: Color3)
+	local surface = Instance.new("SurfaceGui")
+	surface.Face = face
+	surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	surface.PixelsPerStud = 42
+	surface.Parent = part
+
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBold
+	label.Text = text
+	label.TextColor3 = textColor
+	label.TextScaled = true
+	label.Parent = surface
+end
+
+local function refreshWorkshopDecor(shopLevel: number)
+	local runtimeFolder = workspace:FindFirstChild("TinyRepairShopRuntime")
+	if not runtimeFolder then
+		return
+	end
+
+	local old = runtimeFolder:FindFirstChild("LocalWorkshopDecor")
+	if old then
+		old:Destroy()
+	end
+
+	local decor = Instance.new("Folder")
+	decor.Name = "LocalWorkshopDecor"
+	decor.Parent = runtimeFolder
+
+	if shopLevel >= 1 then
+		local rug = collectionPart(
+			decor,
+			"WelcomeRug",
+			Vector3.new(6.5, 0.08, 3.2),
+			CFrame.new(7.5, 0.56, -6.0),
+			Color3.fromRGB(100, 66, 54)
+		)
+		rug.Material = Enum.Material.Fabric
+
+		local pot = collectionPart(decor, "PlantPot", Vector3.new(1.25, 1.1, 1.25), CFrame.new(14.7, 1.05, -7.7), Color3.fromRGB(132, 87, 58))
+		pot.Material = Enum.Material.SmoothPlastic
+		local stem = collectionPart(decor, "PlantStem", Vector3.new(0.3, 1.9, 0.3), CFrame.new(14.7, 2.35, -7.7), Color3.fromRGB(75, 109, 66))
+		stem.Material = Enum.Material.SmoothPlastic
+		for index = 0, 3 do
+			local angle = math.rad(index * 90 + 35)
+			collectionPart(
+				decor,
+				"Leaf",
+				Vector3.new(1.25, 0.18, 0.55),
+				CFrame.new(14.7, 2.65, -7.7) * CFrame.Angles(0, angle, math.rad(18)) * CFrame.new(0.55, 0, 0),
+				Color3.fromRGB(82, 132, 75)
+			)
+		end
+	end
+
+	if shopLevel >= 2 then
+		for _, x in { -6.5, 6.5 } do
+			local lamp = collectionPart(
+				decor,
+				"WarmWallLamp",
+				Vector3.new(0.65, 0.9, 0.45),
+				CFrame.new(x, 7.2, 12.8),
+				Color3.fromRGB(229, 193, 126)
+			)
+			lamp.Material = Enum.Material.Neon
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 220, 164)
+			light.Brightness = 1.15
+			light.Range = 13
+			light.Parent = lamp
+		end
+
+		local certificate = collectionPart(
+			decor,
+			"TrustCertificate",
+			Vector3.new(5.2, 3.0, 0.16),
+			CFrame.new(10.2, 7.4, 12.92),
+			Color3.fromRGB(72, 59, 48)
+		)
+		addDecorText(
+			certificate,
+			if localeCode == "ja" then "地域の頼れる修理工房" else "TRUSTED LOCAL REPAIR",
+			Enum.NormalId.Front,
+			Color3.fromRGB(237, 220, 178)
+		)
+	end
+
+	if shopLevel >= 3 then
+		local premiumSign = collectionPart(
+			decor,
+			"MasterSign",
+			Vector3.new(9.2, 1.45, 0.25),
+			CFrame.new(0, 8.0, 12.88),
+			Color3.fromRGB(47, 58, 54)
+		)
+		premiumSign.Material = Enum.Material.Metal
+		addDecorText(
+			premiumSign,
+			if localeCode == "ja" then "MASTER REPAIR WORKS" else "MASTER REPAIR WORKS",
+			Enum.NormalId.Front,
+			Color3.fromRGB(247, 213, 118)
+		)
+
+		for _, x in { -10, 0, 10 } do
+			local ceilingLight = collectionPart(
+				decor,
+				"CeilingGlow",
+				Vector3.new(5.5, 0.15, 0.55),
+				CFrame.new(x, 10.8, 2.5),
+				Color3.fromRGB(255, 238, 187)
+			)
+			ceilingLight.Material = Enum.Material.Neon
+			local light = Instance.new("PointLight")
+			light.Color = Color3.fromRGB(255, 230, 180)
+			light.Brightness = 0.85
+			light.Range = 14
+			light.Parent = ceilingLight
+		end
+	end
+end
+
 local function addPlaque(parent: Instance, cframe: CFrame, text: string, discovered: boolean)
 	local plaque = collectionPart(
 		parent,
