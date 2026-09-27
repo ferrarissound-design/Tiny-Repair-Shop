@@ -545,6 +545,17 @@ local function triggerOddityAmbient()
 	if not runtimeFolder then
 		return
 	end
+
+	local character = player.Character
+	local root = if character then character:FindFirstChild("HumanoidRootPart") else nil
+	local shelfAnchor = runtimeFolder:FindFirstChild("CollectionSlot_2")
+	if not root or not root:IsA("BasePart") or not shelfAnchor or not shelfAnchor:IsA("BasePart") then
+		return
+	end
+	if (root.Position - shelfAnchor.Position).Magnitude > 28 then
+		return
+	end
+
 	local display = runtimeFolder:FindFirstChild("LocalOddityDisplay")
 	if not display then
 		return
