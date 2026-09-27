@@ -218,6 +218,179 @@ local function renderJob(state: any?)
 	end
 end
 
+-- Oddity collection shelf. The shelf frame is shared in the server-built workshop,
+-- but the contents are local so every player sees their own discovered curiosities.
+local ODDITY_ORDER = {
+	"midnight_radio",
+	"laughing_toy_car",
+	"blank_photo_camera",
+}
+
+local function collectionPart(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	shape: Enum.PartType?
+): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.CFrame = cframe
+	part.Color = color
+	part.Material = Enum.Material.SmoothPlastic
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanTouch = false
+	part.CanQuery = false
+	if shape then
+		part.Shape = shape
+	end
+	part.Parent = parent
+	return part
+end
+
+local function addPlaque(parent: Instance, cframe: CFrame, text: string, discovered: boolean)
+	local plaque = collectionPart(
+		parent,
+		"Plaque",
+		Vector3.new(4.9, 0.72, 0.16),
+		cframe,
+		if discovered then Color3.fromRGB(63, 50, 68) else Color3.fromRGB(62, 61, 59)
+	)
+
+	local surface = Instance.new("SurfaceGui")
+	surface.Face = Enum.NormalId.Front
+	surface.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	surface.PixelsPerStud = 48
+	surface.Parent = plaque
+
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBold
+	label.Text = text
+	label.TextColor3 = if discovered then Color3.fromRGB(230, 211, 238) else Color3.fromRGB(157, 153, 147)
+	label.TextScaled = true
+	label.Parent = surface
+end
+
+local function buildMiniRadio(parent: Instance, base: CFrame)
+	collectionPart(parent, "Body", Vector3.new(2.7, 1.35, 1.0), base * CFrame.new(0, 0.72, 0), Color3.fromRGB(61, 74, 72))
+	collectionPart(parent, "Speaker", Vector3.new(0.24, 0.9, 0.9), base * CFrame.new(-0.75, 0.72, -0.54) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(35, 39, 39), Enum.PartType.Cylinder)
+	collectionPart(parent, "Dial", Vector3.new(0.22, 0.34, 0.34), base * CFrame.new(0.72, 0.88, -0.55) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(211, 180, 105), Enum.PartType.Cylinder)
+	collectionPart(parent, "Handle", Vector3.new(1.8, 0.15, 0.18), base * CFrame.new(0, 1.48, 0), Color3.fromRGB(45, 50, 49))
+end
+
+local function buildMiniToyCar(parent: Instance, base: CFrame)
+	collectionPart(parent, "Body", Vector3.new(2.5, 0.7, 1.25), base * CFrame.new(0, 0.55, 0), Color3.fromRGB(193, 69, 57))
+	collectionPart(parent, "Cab", Vector3.new(1.15, 0.55, 1.05), base * CFrame.new(0.25, 1.0, 0), Color3.fromRGB(218, 91, 68))
+	for xIndex = -1, 1, 2 do
+		for zIndex = -1, 1, 2 do
+			collectionPart(
+				parent,
+				"Wheel",
+				Vector3.new(0.42, 0.42, 0.3),
+				base * CFrame.new(xIndex * 0.82, 0.28, zIndex * 0.58) * CFrame.Angles(math.rad(90), 0, 0),
+				Color3.fromRGB(33, 33, 33),
+				Enum.PartType.Cylinder
+			)
+		end
+	end
+end
+
+local function buildMiniCamera(parent: Instance, base: CFrame)
+	collectionPart(parent, "Body", Vector3.new(2.55, 1.7, 1.15), base * CFrame.new(0, 0.9, 0), Color3.fromRGB(229, 220, 196))
+	collectionPart(parent, "Accent", Vector3.new(2.6, 0.48, 1.2), base * CFrame.new(0, 0.56, 0), Color3.fromRGB(73, 82, 78))
+	collectionPart(parent, "Lens", Vector3.new(0.72, 0.72, 0.48), base * CFrame.new(-0.35, 0.95, -0.75) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(38, 42, 44), Enum.PartType.Cylinder)
+	collectionPart(parent, "Flash", Vector3.new(0.48, 0.28, 0.15), base * CFrame.new(0.55, 1.38, -0.62), Color3.fromRGB(238, 226, 164))
+end
+
+local function buildLockedCuriosity(parent: Instance, base: CFrame)
+	local box = collectionPart(parent, "Unknown", Vector3.new(1.8, 1.25, 1.0), base * CFrame.new(0, 0.68, 0), Color3.fromRGB(55, 53, 57))
+	box.Material = Enum.Material.Metal
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(80, 44)
+	billboard.StudsOffset = Vector3.new(0, 1.2, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = box
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBlack
+	label.Text = "???"
+	label.TextColor3 = Color3.fromRGB(170, 164, 176)
+	label.TextScaled = true
+	label.Parent = billboard
+end
+
+local function refreshOddityShelf()
+	local runtimeFolder = workspace:FindFirstChild("TinyRepairShopRuntime")
+	local collection = player:FindFirstChild("OddityCollection")
+	if not runtimeFolder or not collection or not collection:IsA("Folder") then
+		return
+	end
+
+	local oldDisplay = runtimeFolder:FindFirstChild("LocalOddityDisplay")
+	if oldDisplay then
+		oldDisplay:Destroy()
+	end
+
+	local display = Instance.new("Folder")
+	display.Name = "LocalOddityDisplay"
+	display.Parent = runtimeFolder
+
+	for index, jobId in ODDITY_ORDER do
+		local slot = runtimeFolder:FindFirstChild("CollectionSlot_" .. tostring(index))
+		local job = RepairCatalog.getJob(jobId)
+		if slot and slot:IsA("BasePart") and job then
+			local discovered = collection:FindFirstChild(jobId) ~= nil
+			local base = slot.CFrame
+			if discovered then
+				if job.modelKind == "Radio" then
+					buildMiniRadio(display, base)
+				elseif job.modelKind == "ToyCar" then
+					buildMiniToyCar(display, base)
+				elseif job.modelKind == "Camera" then
+					buildMiniCamera(display, base)
+				end
+
+				local glow = Instance.new("PointLight")
+				glow.Name = "ShelfGlow"
+				glow.Color = Color3.fromRGB(173, 137, 196)
+				glow.Brightness = 0.28
+				glow.Range = 4.5
+				glow.Parent = slot
+
+				addPlaque(
+					display,
+					base * CFrame.new(0, 0.05, -1.06),
+					Localization.pick(job.name, localeCode),
+					true
+				)
+			else
+				buildLockedCuriosity(display, base)
+				addPlaque(display, base * CFrame.new(0, 0.05, -1.06), "???", false)
+			end
+		end
+	end
+end
+
+local function bindOddityCollection()
+	local collection = player:WaitForChild("OddityCollection") :: Folder
+	local runtimeFolder = workspace:WaitForChild("TinyRepairShopRuntime")
+	for index = 1, #ODDITY_ORDER do
+		runtimeFolder:WaitForChild("CollectionSlot_" .. tostring(index))
+	end
+
+	collection.ChildAdded:Connect(refreshOddityShelf)
+	collection.ChildRemoved:Connect(refreshOddityShelf)
+	refreshOddityShelf()
+end
+
 -- Customer job offers. The server decides which jobs are valid; the client only
 -- renders the choices and sends the selected slot back.
 local offersFrame = Instance.new("Frame")
@@ -546,4 +719,5 @@ toastEvent.OnClientEvent:Connect(function(key: string, data)
 end)
 
 task.spawn(bindStats)
+task.spawn(bindOddityCollection)
 renderJob(nil)
