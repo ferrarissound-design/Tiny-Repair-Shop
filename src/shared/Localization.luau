@@ -70,6 +70,7 @@ local STRINGS: { [string]: LocalizedText } = {
 	ShopUpgradeNeedCash = { en = "Not enough cash for the workshop upgrade.", ja = "工房の改装費が足りません。" },
 	ShopUpgradeMax = { en = "The workshop is fully upgraded.", ja = "工房は最大まで改装済みです。" },
 	ShiftComplete = { en = "Shift complete!", ja = "シフト終了！" },
+	NewRepairUnlocked = { en = "New repair unlocked!", ja = "新しい修理が解禁！" },
 	ShiftBonus = { en = "Shift bonus", ja = "シフトボーナス" },
 	ShiftQuality = { en = "Average quality", ja = "平均仕上がり" },
 	ShiftPerfects = { en = "Perfect repairs", ja = "完璧修理" },
