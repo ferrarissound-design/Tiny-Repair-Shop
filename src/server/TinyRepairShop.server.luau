@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("TinyRepairShopShared")
 local RepairCatalog = require(Shared:WaitForChild("RepairCatalog"))
 local ShopFlavor = require(Shared:WaitForChild("ShopFlavor"))
+local ProgressionConfig = require(Shared:WaitForChild("ProgressionConfig"))
 
 local DATASTORE_NAME = "TinyRepairShopPlayerData_v1"
 local SAVE_KEY_PREFIX = "player_"
@@ -59,7 +60,15 @@ type JobState = {
 
 local states: { [Player]: JobState } = {}
 local offers: { [Player]: { OfferState } } = {}
-local stats: { [Player]: { money: IntValue, reputation: IntValue, toolLevel: IntValue, oddJobs: IntValue } } = {}
+local stats: { [Player]: {
+	money: IntValue,
+	reputation: IntValue,
+	toolLevel: IntValue,
+	oddJobs: IntValue,
+	repairs: IntValue,
+	shopLevel: IntValue,
+	shiftsCompleted: IntValue,
+} } = {}
 
 local remotes = ReplicatedStorage:FindFirstChild("TinyRepairShopRemotes") :: Folder?
 if not remotes then
@@ -137,6 +146,7 @@ end
 local workbenchTop: Part
 local customerPrompt: ProximityPrompt
 local toolUpgradePrompt: ProximityPrompt
+local shopUpgradePrompt: ProximityPrompt
 
 local function buildWorkshop()
 	Lighting.ClockTime = 17.7
@@ -212,6 +222,25 @@ local function buildWorkshop()
 	toolUpgradePrompt.RequiresLineOfSight = false
 	toolUpgradePrompt.KeyboardKeyCode = Enum.KeyCode.E
 	toolUpgradePrompt.Parent = toolCabinet
+
+	local renovationBoard = newPart(
+		"RenovationBoard",
+		Vector3.new(5.8, 4.6, 0.5),
+		CFrame.new(13.2, 4.0, 11.9),
+		Color3.fromRGB(77, 66, 57),
+		Enum.Material.Wood
+	)
+	addSurfaceText(renovationBoard, "SHOP UPGRADES", Enum.NormalId.Front, Color3.fromRGB(246, 226, 175))
+
+	shopUpgradePrompt = Instance.new("ProximityPrompt")
+	shopUpgradePrompt.Name = "UpgradeShop"
+	shopUpgradePrompt.ActionText = "Improve workshop"
+	shopUpgradePrompt.ObjectText = "Renovation Board"
+	shopUpgradePrompt.HoldDuration = 0.35
+	shopUpgradePrompt.MaxActivationDistance = 9
+	shopUpgradePrompt.RequiresLineOfSight = false
+	shopUpgradePrompt.KeyboardKeyCode = Enum.KeyCode.E
+	shopUpgradePrompt.Parent = renovationBoard
 
 	for i = 1, 5 do
 		local tool = newPart(
@@ -452,6 +481,61 @@ local function getStatValue(player: Player, name: string): IntValue?
 	return leaderstats:FindFirstChild(name) :: IntValue?
 end
 
+local function getProgressValue(player: Player, name: string): IntValue?
+	local progress = player:FindFirstChild("Progress")
+	if not progress then
+		return nil
+	end
+	return progress:FindFirstChild(name) :: IntValue?
+end
+
+local function getCustomerVisitsFolder(player: Player): Folder?
+	local folder = player:FindFirstChild("CustomerVisits")
+	if folder and folder:IsA("Folder") then
+		return folder
+	end
+	return nil
+end
+
+local function getCustomerVisits(player: Player, customerId: string): number
+	local folder = getCustomerVisitsFolder(player)
+	if not folder then
+		return 0
+	end
+	local value = folder:FindFirstChild(customerId)
+	if value and value:IsA("IntValue") then
+		return value.Value
+	end
+	return 0
+end
+
+local function incrementCustomerVisits(player: Player, customerId: string): number
+	local folder = getCustomerVisitsFolder(player)
+	if not folder then
+		return 0
+	end
+	local value = folder:FindFirstChild(customerId)
+	if value and value:IsA("IntValue") then
+		value.Value += 1
+		return value.Value
+	end
+	return 0
+end
+
+local function serializeCustomerVisits(player: Player): { [string]: number }
+	local result: { [string]: number } = {}
+	local folder = getCustomerVisitsFolder(player)
+	if not folder then
+		return result
+	end
+	for _, child in folder:GetChildren() do
+		if child:IsA("IntValue") then
+			result[child.Name] = math.max(0, child.Value)
+		end
+	end
+	return result
+end
+
 local function repairQuality(mistakes: number): number
 	return math.max(0, 100 - mistakes * 20)
 end
@@ -614,12 +698,62 @@ local function finishJob(player: Player, state: JobState)
 	end
 
 	local oddJobsValue = getStatValue(player, "OddJobs")
+	local repairsValue = getProgressValue(player, "Repairs")
+	local shopLevelValue = getProgressValue(player, "ShopLevel")
+	local shiftsCompletedValue = getProgressValue(player, "ShiftsCompleted")
+	local shiftRepairsValue = getProgressValue(player, "ShiftRepairs")
+	local shiftPerfectsValue = getProgressValue(player, "ShiftPerfects")
+	local shiftEarningsValue = getProgressValue(player, "ShiftEarnings")
+	local shiftQualityValue = getProgressValue(player, "ShiftQuality")
 	local newOddityUnlocked = false
 	if job.rareOnly then
 		if oddJobsValue then
 			oddJobsValue.Value += 1
 		end
 		newOddityUnlocked = unlockOddity(player, job.id)
+	end
+
+	local customerVisits = incrementCustomerVisits(player, state.customerId)
+	if repairsValue then
+		repairsValue.Value += 1
+	end
+
+	local shiftSummary = nil
+	if shiftRepairsValue and shiftPerfectsValue and shiftEarningsValue and shiftQualityValue then
+		shiftRepairsValue.Value += 1
+		shiftEarningsValue.Value += totalReward
+		shiftQualityValue.Value += repairQuality(state.mistakes)
+		if state.mistakes == 0 then
+			shiftPerfectsValue.Value += 1
+		end
+
+		if shiftRepairsValue.Value >= ProgressionConfig.REPAIRS_PER_SHIFT then
+			local shopLevel = if shopLevelValue then shopLevelValue.Value else 0
+			local shiftBonus, averageQuality = ProgressionConfig.getShiftBonus(
+				shiftPerfectsValue.Value,
+				shiftQualityValue.Value,
+				shiftRepairsValue.Value,
+				shopLevel
+			)
+			if moneyValue then
+				moneyValue.Value += shiftBonus
+			end
+			if shiftsCompletedValue then
+				shiftsCompletedValue.Value += 1
+			end
+			shiftSummary = {
+				bonus = shiftBonus,
+				averageQuality = averageQuality,
+				perfectRepairs = shiftPerfectsValue.Value,
+				earnings = shiftEarningsValue.Value,
+				shiftNumber = if shiftsCompletedValue then shiftsCompletedValue.Value else 1,
+				shopLevel = shopLevel,
+			}
+			shiftRepairsValue.Value = 0
+			shiftPerfectsValue.Value = 0
+			shiftEarningsValue.Value = 0
+			shiftQualityValue.Value = 0
+		end
 	end
 
 	local completionKey = if job.rareOnly then "OddityComplete" else "RepairComplete"
@@ -634,7 +768,12 @@ local function finishJob(player: Player, state: JobState)
 		oddJobs = if oddJobsValue then oddJobsValue.Value else 0,
 		newOddityUnlocked = newOddityUnlocked,
 		jobId = job.id,
+		customerVisits = customerVisits,
 	})
+
+	if shiftSummary then
+		toastEvent:FireClient(player, "ShiftComplete", shiftSummary)
+	end
 
 	destroyPlayerItem(player)
 	states[player] = nil
@@ -853,9 +992,12 @@ local function startJob(player: Player, jobId: string, faultId: string, customer
 	connectRepairPrompt(player, state, primary)
 	pushState(player)
 	local acceptedKey = if job.rareOnly then "OddityAccepted" else "JobAccepted"
+	local customerVisits = getCustomerVisits(player, customer.id)
 	toastEvent:FireClient(player, acceptedKey, {
 		customerId = customer.id,
 		modifierId = modifier.id,
+		customerVisits = customerVisits,
+		relationshipTier = ProgressionConfig.getRelationshipTier(customerVisits),
 	})
 end
 
@@ -873,7 +1015,7 @@ local function shuffledJobs(jobs)
 	return result
 end
 
-local function buildOfferPayload(playerOffers: { OfferState })
+local function buildOfferPayload(player: Player, playerOffers: { OfferState })
 	local payload = {}
 	for _, offer in playerOffers do
 		local job = RepairCatalog.getJob(offer.jobId)
@@ -889,6 +1031,8 @@ local function buildOfferPayload(playerOffers: { OfferState })
 					reputationReward = job.reputationReward,
 					quotedReward = math.floor((job.baseReward + fault.rewardBonus) * modifier.rewardMultiplier + 0.5),
 					isOddity = job.rareOnly == true,
+					customerVisits = getCustomerVisits(player, offer.customerId),
+					relationshipTier = ProgressionConfig.getRelationshipTier(getCustomerVisits(player, offer.customerId)),
 				})
 			end
 		end
@@ -904,7 +1048,7 @@ local function presentOffers(player: Player)
 
 	local cachedOffers = offers[player]
 	if cachedOffers then
-		jobOffersOpened:FireClient(player, buildOfferPayload(cachedOffers))
+		jobOffersOpened:FireClient(player, buildOfferPayload(player, cachedOffers))
 		return
 	end
 
@@ -948,7 +1092,7 @@ local function presentOffers(player: Player)
 	end
 
 	offers[player] = playerOffers
-	jobOffersOpened:FireClient(player, buildOfferPayload(playerOffers))
+	jobOffersOpened:FireClient(player, buildOfferPayload(player, playerOffers))
 	if oddityRolled then
 		toastEvent:FireClient(player, "OddityArrived", {})
 	end
@@ -962,6 +1106,55 @@ local function loadPlayer(player: Player)
 	local oddityCollection = Instance.new("Folder")
 	oddityCollection.Name = "OddityCollection"
 	oddityCollection.Parent = player
+
+	local customerVisitsFolder = Instance.new("Folder")
+	customerVisitsFolder.Name = "CustomerVisits"
+	customerVisitsFolder.Parent = player
+	for _, customer in ShopFlavor.Customers do
+		local visitValue = Instance.new("IntValue")
+		visitValue.Name = customer.id
+		visitValue.Value = 0
+		visitValue.Parent = customerVisitsFolder
+	end
+
+	local progress = Instance.new("Folder")
+	progress.Name = "Progress"
+	progress.Parent = player
+
+	local repairs = Instance.new("IntValue")
+	repairs.Name = "Repairs"
+	repairs.Value = 0
+	repairs.Parent = progress
+
+	local shopLevel = Instance.new("IntValue")
+	shopLevel.Name = "ShopLevel"
+	shopLevel.Value = 0
+	shopLevel.Parent = progress
+
+	local shiftsCompleted = Instance.new("IntValue")
+	shiftsCompleted.Name = "ShiftsCompleted"
+	shiftsCompleted.Value = 0
+	shiftsCompleted.Parent = progress
+
+	local shiftRepairs = Instance.new("IntValue")
+	shiftRepairs.Name = "ShiftRepairs"
+	shiftRepairs.Value = 0
+	shiftRepairs.Parent = progress
+
+	local shiftPerfects = Instance.new("IntValue")
+	shiftPerfects.Name = "ShiftPerfects"
+	shiftPerfects.Value = 0
+	shiftPerfects.Parent = progress
+
+	local shiftEarnings = Instance.new("IntValue")
+	shiftEarnings.Name = "ShiftEarnings"
+	shiftEarnings.Value = 0
+	shiftEarnings.Parent = progress
+
+	local shiftQuality = Instance.new("IntValue")
+	shiftQuality.Name = "ShiftQuality"
+	shiftQuality.Value = 0
+	shiftQuality.Parent = progress
 
 	local money = Instance.new("IntValue")
 	money.Name = "Cash"
@@ -988,7 +1181,15 @@ local function loadPlayer(player: Player)
 	oddJobs.Value = 0
 	oddJobs.Parent = leaderstats
 
-	stats[player] = { money = money, reputation = reputation, toolLevel = toolLevel, oddJobs = oddJobs }
+	stats[player] = {
+		money = money,
+		reputation = reputation,
+		toolLevel = toolLevel,
+		oddJobs = oddJobs,
+		repairs = repairs,
+		shopLevel = shopLevel,
+		shiftsCompleted = shiftsCompleted,
+	}
 
 	local success, data = pcall(function()
 		return playerStore:GetAsync(SAVE_KEY_PREFIX .. tostring(player.UserId))
@@ -1000,6 +1201,10 @@ local function loadPlayer(player: Player)
 		local savedToolLevel = data.toolLevel
 		local savedOddJobs = data.oddJobs
 		local savedOddCollection = data.oddCollection
+		local savedRepairs = data.repairs
+		local savedShopLevel = data.shopLevel
+		local savedShiftsCompleted = data.shiftsCompleted
+		local savedCustomerVisits = data.customerVisits
 		if type(savedMoney) == "number" then
 			money.Value = math.max(0, math.floor(savedMoney))
 		end
@@ -1011,6 +1216,25 @@ local function loadPlayer(player: Player)
 		end
 		if type(savedOddJobs) == "number" then
 			oddJobs.Value = math.max(0, math.floor(savedOddJobs))
+		end
+		if type(savedRepairs) == "number" then
+			repairs.Value = math.max(0, math.floor(savedRepairs))
+		end
+		if type(savedShopLevel) == "number" then
+			shopLevel.Value = math.clamp(math.floor(savedShopLevel), 0, #ProgressionConfig.ShopUpgradeCosts)
+		end
+		if type(savedShiftsCompleted) == "number" then
+			shiftsCompleted.Value = math.max(0, math.floor(savedShiftsCompleted))
+		end
+		if type(savedCustomerVisits) == "table" then
+			for customerId, visitCount in savedCustomerVisits do
+				if type(customerId) == "string" and type(visitCount) == "number" then
+					local visitValue = customerVisitsFolder:FindFirstChild(customerId)
+					if visitValue and visitValue:IsA("IntValue") then
+						visitValue.Value = math.max(0, math.floor(visitCount))
+					end
+				end
+			end
 		end
 		if type(savedOddCollection) == "table" then
 			for _, jobId in savedOddCollection do
@@ -1047,10 +1271,16 @@ local function savePlayer(player: Player)
 		toolLevel = playerStats.toolLevel.Value,
 		oddJobs = playerStats.oddJobs.Value,
 		oddCollection = serializeOddityCollection(player),
+		repairs = playerStats.repairs.Value,
+		shopLevel = playerStats.shopLevel.Value,
+		shiftsCompleted = playerStats.shiftsCompleted.Value,
+		customerVisits = serializeCustomerVisits(player),
 	}
 
 	pcall(function()
-		playerStore:SetAsync(SAVE_KEY_PREFIX .. tostring(player.UserId), payload)
+		playerStore:UpdateAsync(SAVE_KEY_PREFIX .. tostring(player.UserId), function()
+			return payload
+		end)
 	end)
 end
 
@@ -1080,6 +1310,32 @@ jobOfferChosen.OnServerEvent:Connect(function(player: Player, offerIndex: number
 	end
 
 	startJob(player, offer.jobId, offer.faultId, offer.customerId, offer.modifierId)
+end)
+
+shopUpgradePrompt.Triggered:Connect(function(player: Player)
+	local cash = getStatValue(player, "Cash")
+	local shopLevel = getProgressValue(player, "ShopLevel")
+	if not cash or not shopLevel then
+		return
+	end
+
+	if shopLevel.Value >= #ProgressionConfig.ShopUpgradeCosts then
+		toastEvent:FireClient(player, "ShopUpgradeMax", {})
+		return
+	end
+
+	local cost = ProgressionConfig.ShopUpgradeCosts[shopLevel.Value + 1]
+	if cash.Value < cost then
+		toastEvent:FireClient(player, "ShopUpgradeNeedCash", { cost = cost })
+		return
+	end
+
+	cash.Value -= cost
+	shopLevel.Value += 1
+	toastEvent:FireClient(player, "ShopUpgraded", {
+		level = shopLevel.Value,
+		cost = cost,
+	})
 end)
 
 toolUpgradePrompt.Triggered:Connect(function(player: Player)
