@@ -1268,7 +1268,11 @@ task.spawn(bindOddityCollection)
 task.spawn(function()
 	while gui.Parent do
 		task.wait(ambientRandom:NextInteger(AMBIENT_MIN_SECONDS, AMBIENT_MAX_SECONDS))
-		if gui.Parent and not offersFrame.Visible and not skillFrame.Visible then
+		if gui.Parent
+			and not offersFrame.Visible
+			and not skillFrame.Visible
+			and not shiftFrame.Visible
+			and not storyFrame.Visible then
 			triggerOddityAmbient()
 		end
 	end
